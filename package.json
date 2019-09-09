@@ -56,7 +56,7 @@
     "eth-ens-namehash": "^2.0.8",
     "ethereumjs-util": "^6.1.0",
     "ethereumjs-wallet": "^0.6.3",
-    "ganache-cli": "^6.4.5",
+    "ganache-cli": "^6.7.0",
     "lodash": "^4.17.14",
     "rimraf": "^2.6.3",
     "solc": "^0.5.7",
