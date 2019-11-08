@@ -40,8 +40,8 @@ module.exports = {
     return web3utils.toChecksumAddress(
       ethJsUtil.bufferToHex(ethJsUtil.generateAddress(
         sender,
-        nonce
-      )
+        nonce,
+      ),
       ));
   },
 
