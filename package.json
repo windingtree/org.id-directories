@@ -61,7 +61,7 @@
     "rimraf": "^3.0.0",
     "solc": "^0.6.2",
     "solhint": "^2.0.0",
-    "solidity-coverage": "^0.6.0",
+    "solidity-coverage": "^0.7.2",
     "solmd": "^0.4.0",
     "truffle": "^5.0.29",
     "truffle-contract": "^4.0.26",
