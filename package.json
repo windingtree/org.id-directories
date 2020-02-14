@@ -55,7 +55,7 @@
     "solhint": "2.3.0",
     "solidity-coverage": "0.7.1",
     "solmd": "0.4.0",
-    "truffle": "5.1.12",
+    "truffle": "5.1.13",
     "truffle-flattener": "1.4.2",
     "web3-utils": "1.2.6"
   },
