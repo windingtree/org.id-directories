@@ -48,7 +48,7 @@
     "coveralls": "3.0.9",
     "eslint": "6.8.0",
     "ethereumjs-util": "6.2.0",
-    "ganache-cli": "6.4.5",
+    "ganache-cli": "6.9.1",
     "husky": "^4.2.1",
     "rimraf": "3.0.2",
     "solc": "0.6.2",
