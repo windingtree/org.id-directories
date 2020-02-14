@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@openzeppelin/cli": "2.7.1",
-    "@truffle/contract": "4.1.8",
+    "@truffle/contract": "4.1.9",
     "@truffle/hdwallet-provider": "1.0.30",
     "chai": "4.2.0",
     "coveralls": "3.0.9",
