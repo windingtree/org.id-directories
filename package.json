@@ -51,7 +51,7 @@
     "ganache-cli": "6.4.5",
     "husky": "^4.2.1",
     "rimraf": "3.0.2",
-    "solc": "0.6.2",
+    "solc": "0.6.3",
     "solhint": "2.3.0",
     "solidity-coverage": "0.7.1",
     "solmd": "0.4.0",
