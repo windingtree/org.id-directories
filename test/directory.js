@@ -2,9 +2,16 @@ const { TestHelper } = require('@openzeppelin/cli');
 const { Contracts, ZWeb3 } = require('@openzeppelin/upgrades');
 
 const { assertRevert, assertEvent } = require('./helpers/assertions');
-const orgIdSetup = require('./helpers/orgid');
 const {
-    zeroAddress
+    orgIdSetup,
+    createOrganization,
+    createSubsidiary,
+    toggleOrganization,
+    generateId
+} = require('./helpers/orgid');
+const {
+    zeroAddress,
+    zeroBytes
 } = require('./helpers/constants');
 
 let gasLimit = 8000000; // Like actual to the Ropsten
@@ -32,7 +39,9 @@ contract('Directory', accounts => {
     
     const orgIdOwner = accounts[1];
     const dirOwner = accounts[2];
-    const nonOwner = accounts[3];
+    const organizationOwner = accounts[3];
+    const subsidiaryDirector = accounts[4];
+    const nonOwner = accounts[5];
 
     const segmentName = 'hotels';
     let project;
@@ -266,7 +275,118 @@ contract('Directory', accounts => {
             });
         });
 
-        describe.skip('#add(bytes32)', () => {});
+        describe('#add(bytes32)', () => {
+            let organizations;
+
+            beforeEach(async () => {
+                // Create some organizations
+                organizations = await Promise.all([
+                    {
+                        orgId,
+                        from: organizationOwner
+                    },
+                    {
+                        orgId,
+                        from: organizationOwner
+                    },
+                    {
+                        orgId,
+                        from: organizationOwner
+                    }
+                ].map(o => createOrganization(
+                    o.orgId,
+                    o.from
+                )));
+            });
+
+            it('should fail if zero bytes been provided as organization id', async () => {
+                await assertRevert(
+                    dir
+                        .methods['add(bytes32)'](zeroBytes)
+                        .send({ from: organizationOwner }),
+                    'Directory: Invalid organization Id'
+                );
+            });
+
+            it('should fail if the same organization has been added before', async () => {
+                await dir
+                    .methods['add(bytes32)'](organizations[0])
+                    .send({ from: organizationOwner });
+                await assertRevert(
+                    dir
+                        .methods['add(bytes32)'](organizations[0])
+                        .send({ from: organizationOwner }),
+                    'Directory: Cannot add organization twice'
+                );
+            });
+
+            it('should fail if provided unknown organization', async () => {
+                await assertRevert(
+                    dir
+                        .methods['add(bytes32)'](generateId(organizations[0]))
+                        .send({ from: organizationOwner }),
+                    'OrgId: Organization with given orgId not found'
+                );
+            });
+
+            it('should fail if called not by organization owner', async () => {
+                await assertRevert(
+                    dir
+                        .methods['add(bytes32)'](organizations[0])
+                        .send({ from: nonOwner }),
+                    'Directory: Only organization owner or director can add the organization'
+                );
+            });
+
+            it('should fail if provided disabled organization', async () => {
+                await toggleOrganization(
+                    orgId,
+                    organizationOwner,
+                    organizations[0]
+                );
+                await assertRevert(
+                    dir
+                        .methods['add(bytes32)'](organizations[0])
+                        .send({ from: organizationOwner }),
+                    'Directory: Only enabled organizations can be added'
+                );
+            });
+
+            it('should fail if ptovided subsidiary with non confirmed director ownership', async () => {
+                const subId = await createSubsidiary(
+                    orgId,
+                    organizationOwner,
+                    organizations[0],
+                    subsidiaryDirector
+                );
+                await assertRevert(
+                    dir
+                        .methods['add(bytes32)'](subId)
+                        .send({ from: subsidiaryDirector }),
+                    'Directory: Only subsidiaries with confirmed director ownership can be added'
+                );
+            });
+
+            it('should add origanization', async () => {
+                const result = await dir
+                    .methods['add(bytes32)'](organizations[0])
+                    .send({ from: organizationOwner });
+                assertEvent(result, 'OrganizationAdded', [
+                    [
+                        'organization',
+                        p => (p).should.equal(organizations[0])
+                    ],
+                    [
+                        'index',
+                        p => (p).should.not.equal(0)
+                    ]
+                ]);
+                const orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array').that.include(organizations[0]);
+            });
+        });
 
         describe.skip('#remove(bytes32)', () => {});
 
