@@ -248,10 +248,6 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         (bytes32 id, , , , address orgOwner, address director, , ) = orgId.getOrganization(organization);
 
         require(
-            id == organization,
-            "Directory: Organization not found on the ORG.ID registry"
-        );
-        require(
             orgOwner == msg.sender || director == msg.sender,
             "Directory: Only organization owner or director can remove the organization"
         );

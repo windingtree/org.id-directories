@@ -388,7 +388,57 @@ contract('Directory', accounts => {
             });
         });
 
-        describe.skip('#remove(bytes32)', () => {});
+        describe('#remove(bytes32)', () => {
+            let organization;
+
+            beforeEach(async () => {
+                organization = await createOrganization(
+                    orgId,
+                    organizationOwner
+                );
+                await dir
+                    .methods['add(bytes32)'](organization)
+                    .send({ from: organizationOwner });
+            });
+            
+            it('should fail if non registered organization has been provided', async () => {
+                await assertRevert(
+                    dir
+                        .methods['remove(bytes32)'](generateId('unknown'))
+                        .send({ from: organizationOwner }),
+                    'Directory: Organization with given Id not found'
+                );
+            });
+
+            it('should fail if called not by an organization owner or director', async () => {
+                await assertRevert(
+                    dir
+                        .methods['remove(bytes32)'](organization)
+                        .send({ from: nonOwner }),
+                    'Directory: Only organization owner or director can remove the organization'
+                );
+            });
+
+            it('should remove organization', async () => {
+                let orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array').that.include(organization);
+                const result = await dir
+                    .methods['remove(bytes32)'](organization)
+                    .send({ from: organizationOwner });
+                assertEvent(result, 'OrganizationRemoved', [
+                    [
+                        'organization',
+                        p => (p).should.equal(organization)
+                    ]
+                ]);
+                orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array').that.not.include(organization);
+            });
+        });
 
         describe.skip('#getOrganizations()', () => {});
     });
