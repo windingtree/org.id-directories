@@ -30,6 +30,11 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
     mapping(bytes32 => uint256) organizationsIndex;
 
     /**
+     * @dev Event triggered every time segment value is changed
+     */
+    event SegmentChanged(string previousSegment, string newSegment);
+
+    /**
      * @dev Event triggered every time organization is added.
      */
     event OrganizationAdded(bytes32 indexed organization, uint256 index);
@@ -70,11 +75,11 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         );
         require(
             _orgId != address(0),
-            "Directory: Invalid ORGI.ID address"
+            "Directory: Invalid ORG.ID address"
         );
         require(
             ERC165Checker._supportsInterface(_orgId, 0x36b78f0f),
-            "Directory: ORGI.ID instance has to support ORGI.ID interface"
+            "Directory: ORG.ID instance has to support ORG.ID interface"
         );
         
         setInterfaces();
@@ -95,6 +100,7 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
             bytes(_segment).length != 0,
             "Directory: Segment cannot be empty"
         );
+        emit SegmentChanged(segment, _segment);
         segment = _segment;
     }
 

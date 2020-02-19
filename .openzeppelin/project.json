@@ -4,7 +4,8 @@
     "Directory": "Directory",
     "DirectoryIndex": "DirectoryIndex",
     "DirectoryUpgradeability": "DirectoryUpgradeability",
-    "DirectoryIndexUpgradeability": "DirectoryIndexUpgradeability"
+    "DirectoryIndexUpgradeability": "DirectoryIndexUpgradeability",
+    "FakeOrgId": "FakeOrgId"
   },
   "dependencies": {},
   "name": "org.id-directories",
