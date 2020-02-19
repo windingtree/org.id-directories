@@ -440,6 +440,51 @@ contract('Directory', accounts => {
             });
         });
 
-        describe.skip('#getOrganizations()', () => {});
+        describe('#getOrganizations()', () => {
+
+            it('should return empty array if organization are not been added before', async () => {
+                const orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array');
+                (orgs.length).should.equal(0);
+            });
+
+            it('should return empty array if organizations been added but removed', async () => {
+                const organization = await createOrganization(
+                    orgId,
+                    organizationOwner
+                );
+                await dir
+                    .methods['add(bytes32)'](organization)
+                    .send({ from: organizationOwner });
+                let orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array').that.include(organization);
+                await dir
+                    .methods['remove(bytes32)'](organization)
+                    .send({ from: organizationOwner });
+                orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array');
+                (orgs.length).should.equal(0);
+            });
+
+            it('should return array of added organizations', async () => {
+                const organization = await createOrganization(
+                    orgId,
+                    organizationOwner
+                );
+                await dir
+                    .methods['add(bytes32)'](organization)
+                    .send({ from: organizationOwner });
+                let orgs = await dir
+                    .methods['getOrganizations()']()
+                    .call();
+                (orgs).should.to.be.an('array').that.include(organization);
+            });
+        });
     });
 });
