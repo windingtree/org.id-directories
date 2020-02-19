@@ -5,7 +5,7 @@ const { assertRevert, assertEvent } = require('./helpers/assertions');
 const { createDirectory } = require('./helpers/directory');
 const {
     zeroAddress,
-    zeroBytes
+    notExistedAddress
 } = require('./helpers/constants');
 
 let gasLimit = 8000000; // Like actual to the Ropsten
@@ -38,7 +38,6 @@ contract('DirectoryIndex', accounts => {
     const segmentName = 'hotels';
     let project;
     let dir;
-    let segment;
 
     beforeEach(async () => {
         project = await TestHelper({
@@ -50,12 +49,6 @@ contract('DirectoryIndex', accounts => {
                 dirOwner
             ]
         });
-        const segmentSetup = await createDirectory(
-            orgIdOwner,
-            segmentOwner,
-            segmentName
-        );
-        segment = segmentSetup.directory;
     });
     
     describe('Upgradeability behaviour', () => {
@@ -141,6 +134,16 @@ contract('DirectoryIndex', accounts => {
     });
 
     describe('DirectoryIndex methods', () => {
+        let segment;
+
+        beforeEach(async () => {
+            const segmentSetup = await createDirectory(
+                orgIdOwner,
+                segmentOwner,
+                segmentName
+            );
+            segment = segmentSetup.directory;
+        });
 
         describe('#addSegment(address)', () => {
 
@@ -189,7 +192,51 @@ contract('DirectoryIndex', accounts => {
             });
         });
 
-        describe('#removeSegment(address)', () => {});
+        describe('#removeSegment(address)', () => {
+            let segment;
+
+            beforeEach(async () => {
+                const segmentSetup = await createDirectory(
+                    orgIdOwner,
+                    segmentOwner,
+                    segmentName
+                );
+                segment = segmentSetup.directory;
+            });
+
+            it('should fail if called not by an owner', async () => {
+                await assertRevert(
+                    dir
+                        .methods['removeSegment(address)'](segment.address)
+                        .send({ from: nonOwner }),
+                    'Ownable: caller is not the owner'
+                );
+            });
+
+            it('should fail if non existed segment address has benn provided', async () => {
+                await assertRevert(
+                    dir
+                        .methods['removeSegment(address)'](notExistedAddress)
+                        .send({ from: dirOwner }),
+                    'DirecttoryIndex: Segment with given address on found'
+                );
+            });
+
+            it('should remove the segment', async () => {
+                await dir
+                    .methods['addSegment(address)'](segment.address)
+                    .send({ from: dirOwner });
+                const result = await dir
+                    .methods['removeSegment(address)'](segment.address)
+                    .send({ from: dirOwner });
+                assertEvent(result, 'SegmentRemoved', [
+                    [
+                        'segment',
+                        p => (p).should.equal(segment.address)
+                    ]
+                ]);
+            });
+        });
 
         describe('#getSegment(address)', () => {});
 
