@@ -2,7 +2,11 @@ const ganache = require('ganache-cli');
 
 module.exports = {
     skipFiles: [
-        'test'
+        'test',
+        'DirectoryInterface',
+        'DirectoryIndexInterface',
+        'DirectoryUpgradeability',
+        'DirectoryIndexUpgradeability'
     ],
     client: ganache,
     providerOptions: {

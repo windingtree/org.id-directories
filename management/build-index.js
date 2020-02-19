@@ -4,11 +4,10 @@ const path = require('path');
 const BASE_PATH = 'build/contracts';
 const CONTRACTS_DIR = path.resolve(__dirname, `../${BASE_PATH}`);
 const bundle = [
-    'Organization.json',
-    'OrganizationInterface.json',
-    'SegmentDirectory.json',
-    'SegmentDirectoryInterface.json',
-    'WindingTreeEntrypoint.json',
+    'Directory.json',
+    'DirectoryIndex.json',
+    'DirectoryInterface.json',
+    'DirectoryIndexInterface.json'
 ];
 const files = fs.readdirSync(CONTRACTS_DIR);
 const bundleRegex = new RegExp(bundle.join('|'));

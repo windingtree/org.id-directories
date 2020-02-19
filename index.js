@@ -1,15 +1,13 @@
 
-const OrganizationContract = require('./build/contracts/Organization.json');
-const OrganizationInterfaceContract = require('./build/contracts/OrganizationInterface.json');
-const SegmentDirectoryContract = require('./build/contracts/SegmentDirectory.json');
-const SegmentDirectoryInterfaceContract = require('./build/contracts/SegmentDirectoryInterface.json');
-const WindingTreeEntrypointContract = require('./build/contracts/WindingTreeEntrypoint.json');
+const DirectoryContract = require('./build/contracts/Directory.json');
+const DirectoryIndexContract = require('./build/contracts/DirectoryIndex.json');
+const DirectoryIndexInterfaceContract = require('./build/contracts/DirectoryIndexInterface.json');
+const DirectoryInterfaceContract = require('./build/contracts/DirectoryInterface.json');
 
 module.exports = {
-    OrganizationContract: OrganizationContract,
-    OrganizationInterfaceContract: OrganizationInterfaceContract,
-    SegmentDirectoryContract: SegmentDirectoryContract,
-    SegmentDirectoryInterfaceContract: SegmentDirectoryInterfaceContract,
-    WindingTreeEntrypointContract: WindingTreeEntrypointContract,
+    DirectoryContract: DirectoryContract,
+    DirectoryIndexContract: DirectoryIndexContract,
+    DirectoryIndexInterfaceContract: DirectoryIndexInterfaceContract,
+    DirectoryInterfaceContract: DirectoryInterfaceContract,
 };
 
