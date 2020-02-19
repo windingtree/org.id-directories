@@ -2,13 +2,7 @@ const { TestHelper } = require('@openzeppelin/cli');
 const { Contracts, ZWeb3 } = require('@openzeppelin/upgrades');
 
 const { assertRevert, assertEvent } = require('./helpers/assertions');
-const {
-    orgIdSetup,
-    createOrganization,
-    createSubsidiary,
-    toggleOrganization,
-    generateId
-} = require('./helpers/orgid');
+const { createDirectory } = require('./helpers/directory');
 const {
     zeroAddress,
     zeroBytes
@@ -30,16 +24,21 @@ ZWeb3.initialize(web3.currentProvider);
 
 const DirectoryIndex = Contracts.getFromLocal('DirectoryIndex');
 const DirectoryIndexUpgradeability = Contracts.getFromLocal('DirectoryIndexUpgradeability');
+const FakeDirectory = Contracts.getFromLocal('FakeDirectory');
 
 require('chai').should();
 
 contract('DirectoryIndex', accounts => {
 
+    const orgIdOwner = accounts[1];
     const dirOwner = accounts[2];
-    const nonOwner = accounts[3];
+    const segmentOwner = accounts[3];
+    const nonOwner = accounts[4];
 
+    const segmentName = 'hotels';
     let project;
     let dir;
+    let segment;
 
     beforeEach(async () => {
         project = await TestHelper({
@@ -51,6 +50,12 @@ contract('DirectoryIndex', accounts => {
                 dirOwner
             ]
         });
+        const segmentSetup = await createDirectory(
+            orgIdOwner,
+            segmentOwner,
+            segmentName
+        );
+        segment = segmentSetup.directory;
     });
     
     describe('Upgradeability behaviour', () => {
@@ -135,5 +140,59 @@ contract('DirectoryIndex', accounts => {
         });
     });
 
-    describe('DirectoryIndex methods', () => {});
+    describe('DirectoryIndex methods', () => {
+
+        describe('#addSegment(address)', () => {
+
+            it('should fail if called by not an owner', async () => {
+                await assertRevert(
+                    dir
+                        .methods['addSegment(address)'](segment.address)
+                        .send({ from: nonOwner }),
+                    'Ownable: caller is not the owner'
+                );
+            });
+
+            it('should fail is zero address provided as segment address', async () => {
+                await assertRevert(
+                    dir
+                        .methods['addSegment(address)'](zeroAddress)
+                        .send({ from: dirOwner }),
+                    'DirectoryIndex: Invalid segment address'
+                );
+            });
+
+            it('should fail if segment not supported directory interface', async () => {
+                const fakeDirectory = await FakeDirectory.new();
+                await assertRevert(
+                    dir
+                        .methods['addSegment(address)'](fakeDirectory.address)
+                        .send({ from: dirOwner }),
+                    'DirectoryIndex: Segment has to support directory interface'
+                );
+            });
+
+            it('should add new segment address', async () => {
+                const result = await dir
+                    .methods['addSegment(address)'](segment.address)
+                    .send({ from: dirOwner });
+                assertEvent(result, 'SegmentAdded', [
+                    [
+                        'segment',
+                        p => (p).should.equal(segment.address)
+                    ],
+                    [
+                        'index',
+                        p => (Number(p)).should.not.equal(0)
+                    ]
+                ]);
+            });
+        });
+
+        describe('#removeSegment(address)', () => {});
+
+        describe('#getSegment(address)', () => {});
+
+        describe('#getSegments(address)', () => {});
+    });
 });

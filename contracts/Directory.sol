@@ -86,7 +86,7 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         _transferOwnership(__owner);
         orgId = OrgIdInterface(_orgId);
         segment = _segment;
-        organizationsIndex[bytes32(0)] = 0;
+        organizationsIndex[bytes32(0)] = organizations.length;
         organizations.push(bytes32(0));
     }
 

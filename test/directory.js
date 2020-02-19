@@ -1,14 +1,13 @@
-const { TestHelper } = require('@openzeppelin/cli');
 const { Contracts, ZWeb3 } = require('@openzeppelin/upgrades');
 
 const { assertRevert, assertEvent } = require('./helpers/assertions');
 const {
-    orgIdSetup,
     createOrganization,
     createSubsidiary,
     toggleOrganization,
     generateId
 } = require('./helpers/orgid');
+const { createDirectory } = require('./helpers/directory');
 const {
     zeroAddress,
     zeroBytes
@@ -48,18 +47,10 @@ contract('Directory', accounts => {
     let orgId;
     
     beforeEach(async () => {
-        orgId = await orgIdSetup(orgIdOwner);
-        project = await TestHelper({
-            from: dirOwner
-        });
-        dir = await project.createProxy(Directory, {
-            initMethod: 'initialize',
-            initArgs: [
-                dirOwner,
-                segmentName,
-                orgId.address
-            ]
-        });
+        const setup = await createDirectory(orgIdOwner, dirOwner, segmentName);
+        orgId = setup.orgId;
+        project = setup.project;
+        dir = setup.directory;
     });
 
     describe('Upgradeability behaviour', () => {
@@ -377,7 +368,7 @@ contract('Directory', accounts => {
                     ],
                     [
                         'index',
-                        p => (p).should.not.equal(0)
+                        p => (Number(p)).should.not.equal(0)
                     ]
                 ]);
                 const orgs = await dir

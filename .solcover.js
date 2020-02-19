@@ -7,7 +7,8 @@ module.exports = {
         'DirectoryIndexInterface',
         'DirectoryUpgradeability',
         'DirectoryIndexUpgradeability',
-        'FakeOrgId'
+        'FakeOrgId',
+        'FakeDirectory'
     ],
     client: ganache,
     providerOptions: {
