@@ -36,6 +36,7 @@ require('chai').should();
 contract('DirectoryIndex', accounts => {
 
     const dirOwner = accounts[2];
+    const nonOwner = accounts[3];
 
     let project;
     let dir;
@@ -80,7 +81,59 @@ contract('DirectoryIndex', accounts => {
         });
     });
 
-    describe('Ownable behaviour', () => {});
+    describe('Ownable behaviour', () => {
+
+        describe('#transferOwnership(address)', () => {
+
+            it('should fail if called by not an owner', async () => {
+                await assertRevert(
+                    dir
+                        .methods['transferOwnership(address)'](nonOwner)
+                        .send({
+                            from: nonOwner
+                        }),
+                    'Ownable: caller is not the owner'
+                );
+            });
+    
+            it('should fail if new owner has zero address', async () => {
+                await assertRevert(
+                    dir
+                        .methods['transferOwnership(address)'](zeroAddress)
+                        .send({
+                            from: dirOwner
+                        }),
+                    'Ownable: new owner is the zero address'
+                );
+            });
+
+            it('should transfer contract ownership', async () => {
+                const result = await dir
+                    .methods['transferOwnership(address)'](nonOwner)
+                    .send({
+                        from: dirOwner
+                    });
+                await assertEvent(result, 'OwnershipTransferred', [
+                    [
+                        'previousOwner',
+                        p => (p).should.equal(dirOwner)
+                    ],
+                    [
+                        'newOwner',
+                        p => (p).should.equal(nonOwner)
+                    ],
+                ]);
+            });
+        });
+
+        describe('#owner()', () => {
+
+            it('should return contract owner', async () => {
+                (await dir.methods['owner()']().call())
+                    .should.equal(dirOwner);
+            });
+        });
+    });
 
     describe('DirectoryIndex methods', () => {});
 });
