@@ -29,7 +29,6 @@ Contracts.setArtifactsDefaults({
 ZWeb3.initialize(web3.currentProvider);
 
 const Directory = Contracts.getFromLocal('Directory');
-const DirectoryInterface = artifacts.require('DirectoryInterface');
 const DirectoryUpgradeability = Contracts.getFromLocal('DirectoryUpgradeability');
 const FakeOrgId = Contracts.getFromLocal('FakeOrgId');
 

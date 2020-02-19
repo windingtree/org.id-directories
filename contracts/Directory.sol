@@ -205,7 +205,7 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         );
 
         // Get the organization info from the ORG.ID registry
-        (bytes32 id, , , , address orgOwner, address director, bool orgState, bool directorConfirmed) = orgId.getOrganization(organization);
+        ( , , , , address orgOwner, address director, bool orgState, bool directorConfirmed) = orgId.getOrganization(organization);
         
         require(
             orgOwner == msg.sender || director == msg.sender,
@@ -245,7 +245,7 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         registeredOrganization(organization) 
     {
         // Get the organization info from the ORG.ID registry
-        (bytes32 id, , , , address orgOwner, address director, , ) = orgId.getOrganization(organization);
+        ( , , , , address orgOwner, address director, , ) = orgId.getOrganization(organization);
 
         require(
             orgOwner == msg.sender || director == msg.sender,
