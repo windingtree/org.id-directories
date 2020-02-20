@@ -238,8 +238,51 @@ contract('DirectoryIndex', accounts => {
             });
         });
 
-        describe('#getSegment(address)', () => {});
+        describe('#getSegments()', () => {
 
-        describe('#getSegments(address)', () => {});
+            it('should return an empty array if segments are not been added', async () => {
+                const segments = await dir
+                    .methods['getSegments()']()
+                    .call();
+                (segments).should.to.be.an('array');
+                (segments.length).should.equal(0);
+            });
+
+            it('should return an empty array if segments are been added but removed', async () => {
+                const segmentSetup = await createDirectory(
+                    orgIdOwner,
+                    segmentOwner,
+                    segmentName
+                );
+                const segment = segmentSetup.directory;
+                await dir
+                    .methods['addSegment(address)'](segment.address)
+                    .send({ from: dirOwner });
+                await dir
+                    .methods['removeSegment(address)'](segment.address)
+                    .send({ from: dirOwner });
+                const segments = await dir
+                    .methods['getSegments()']()
+                    .call();
+                (segments).should.to.be.an('array');
+                (segments.length).should.equal(0);
+            });
+
+            it('sould return array of segments', async () => {
+                const segmentSetup = await createDirectory(
+                    orgIdOwner,
+                    segmentOwner,
+                    segmentName
+                );
+                const segment = segmentSetup.directory;
+                await dir
+                    .methods['addSegment(address)'](segment.address)
+                    .send({ from: dirOwner });
+                const segments = await dir
+                    .methods['getSegments()']()
+                    .call();
+                (segments).should.to.be.an('array').that.include(segment.address);
+            });
+        });
     });
 });

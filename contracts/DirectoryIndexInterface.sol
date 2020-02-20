@@ -15,16 +15,6 @@ contract DirectoryIndexInterface {
     function removeSegment(address segment) external;
 
     /**
-     * @dev Returns address of a segment
-     * is unknown.
-     * @param segment Segment name
-     * @return {
-         "addr": "Address of a segment"
-     }
-     */
-    function getSegment(address segment) external view returns(address addr);
-
-    /**
      * @dev Returns registered segments array
      * @return {
          "segmentsList": "Array of organization Ids"
