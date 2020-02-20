@@ -30,6 +30,6 @@ zos.dev-*
 !.openzeppelin/project.json
 
 # Project deployments
-!.openzeppelin/ropsten-OrgId.json
-!.openzeppelin/rinkeby-OrgId.json
-!.openzeppelin/mainnet-OrgId.json
+!.openzeppelin/ropsten*
+!.openzeppelin/rinkeby*
+!.openzeppelin/mainnet*

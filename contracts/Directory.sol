@@ -205,7 +205,16 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         );
 
         // Get the organization info from the ORG.ID registry
-        ( , , , , address orgOwner, address director, bool orgState, bool directorConfirmed) = orgId.getOrganization(organization);
+        ( 
+            , 
+            , 
+            , 
+            , 
+            address orgOwner, 
+            address director, 
+            bool orgState, 
+            bool directorConfirmed
+        ) = orgId.getOrganization(organization);
         
         require(
             orgOwner == msg.sender || director == msg.sender,

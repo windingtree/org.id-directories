@@ -1,0 +1,14 @@
+{
+  "version": "0.10.0",
+  "contract": {
+    "name": "Directory",
+    "implementation": "0x573FDebFe1ccd09244fbF85a3e3eF52cAA1b30d5",
+    "proxy": "0x64c316514B84716A7e35718c4c56aebce1a521BA"
+  },
+  "owner": "0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959",
+  "app": "0x712B8455cfDaee5023C5E8d05466b958Cf115D78",
+  "proxyAdmin": "0xC782690DCD4b2f72E9aa8fd596fA78B11C72CaA5",
+  "implementationDirectory": "0x6D56b584317E80246A0D688b96525CEDC92ee9Fa",
+  "package": "0x2865A5455F4C8A5E843504f7D3b526685c9Acd5d",
+  "blockNumber": 7362693
+}

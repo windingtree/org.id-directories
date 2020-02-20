@@ -32,8 +32,8 @@ npm run lint
 ```
 
 ## Generated docs
-[Directory](./docs/Directory.md)
-[DirectoryIndex](./docs/DirectoryIndex.md)
+- [Directory](./docs/Directory.md)  
+- [DirectoryIndex](./docs/DirectoryIndex.md)  
 
 ## Directory deployment
 
