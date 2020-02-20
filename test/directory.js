@@ -342,7 +342,7 @@ contract('Directory', accounts => {
                 );
             });
 
-            it('should fail if ptovided subsidiary with non confirmed director ownership', async () => {
+            it('should fail if provided subsidiary with non confirmed director ownership', async () => {
                 const subId = await createSubsidiary(
                     orgId,
                     organizationOwner,
