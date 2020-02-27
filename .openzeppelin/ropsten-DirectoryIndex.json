@@ -2,13 +2,13 @@
   "version": "0.10.0",
   "contract": {
     "name": "DirectoryIndex",
-    "implementation": "0xC00aA7B96199BAa84F27D83165954f3904E9feF5",
-    "proxy": "0x42116d2CC78A4f8178058dba6c3e497813873006"
+    "implementation": "0x1635cF845707b23B29B98066c359169CAdAe08c0",
+    "proxy": "0x182C2c88C5fDf4113bEADADa9A3542f280B6C8F6"
   },
   "owner": "0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959",
-  "app": "0xc8D1b5B62D9e8a9154572B8C65836d459dd98295",
-  "proxyAdmin": "0x3989Eea570d0d8E257eF7A2b2dF811a7BcEeDA62",
-  "implementationDirectory": "0x06ec9dA3515b2087535498cffEe0Ffe30D30797c",
-  "package": "0xAD4B90b5053F7382A1313812559E044219BAE523",
-  "blockNumber": 7362733
+  "app": "0x67aeda3529627327d5cE67BA8073DA1F17386e40",
+  "proxyAdmin": "0x683999cF4ddb819998bDe39F18ee19DdA4d1734F",
+  "implementationDirectory": "0xddB55042F020412C5Ba14c1957821046552fDeBb",
+  "package": "0xe8A337775647aa171168caF3192bDb3721207E2a",
+  "blockNumber": 7415475
 }
