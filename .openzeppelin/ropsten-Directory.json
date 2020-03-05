@@ -1,0 +1,11 @@
+{
+  "version": "0.11.0",
+  "contract": {
+    "name": "Directory",
+    "implementation": "0x8542dd0f10CC91887547d000850117A45bc53203",
+    "proxy": "0x9846aA2862c8C120583C395b5e8f219457a6AA1c"
+  },
+  "owner": "0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959",
+  "proxyAdmin": null,
+  "blockNumber": 7460137
+}
