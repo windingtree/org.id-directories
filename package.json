@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/org.id-directories",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Directory and DirectoryIndex smart contracts of the Winding Tree protocol",
   "directories": {
     "test": "test"
@@ -23,9 +23,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "bin": {
-    "orgid-tools": "./management/tools/index.js"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/windingtree/wt-contracts"
@@ -42,7 +39,7 @@
   "license": "GPL-3.0-only",
   "dependencies": {
     "@openzeppelin/contracts": "2.5.0",
-    "@windingtree/org.id": "0.11.4"
+    "@windingtree/org.id": "0.11.5"
   },
   "devDependencies": {
     "@openzeppelin/cli": "2.7.1",
