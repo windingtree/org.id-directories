@@ -1,13 +1,11 @@
 pragma solidity >=0.5.16;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-
 /**
  * @title DirectoryInterface
  * @dev Usable in libraries. Directory is essentially a list
  * of 0xORG smart contracts that share a common segment - hotels, airlines, otas.
  */
-contract DirectoryInterface is Ownable {
+contract DirectoryInterface {
 
     /**
      * @dev Allows the owner of the contract to change the

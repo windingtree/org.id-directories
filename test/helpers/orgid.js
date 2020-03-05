@@ -1,5 +1,6 @@
 const { TestHelper } = require('@openzeppelin/cli');
 const { Contracts } = require('@openzeppelin/upgrades');
+const { setupLifToken } = require('./lif');
 
 /**
  * Generates an id on the base of string and solt
@@ -15,6 +16,7 @@ module.exports.generateId = generateId;
  * @returns {Promise<{Object}>} OrgId contact instancr
  */
 module.exports.orgIdSetup = async (owner) => {
+    const lifToken = await setupLifToken(owner);
     const OrgId = Contracts.getFromNodeModules('@windingtree/org.id', 'OrgId');
     const project = await TestHelper({
         from: owner
@@ -26,7 +28,8 @@ module.exports.orgIdSetup = async (owner) => {
     return await project.createProxy(OrgId, {
         initMethod: 'initialize',
         initArgs: [
-            owner
+            owner,
+            lifToken.address
         ]
     });
 };

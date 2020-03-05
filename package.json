@@ -23,6 +23,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "bin": {
+    "orgid-tools": "./management/tools/index.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/windingtree/wt-contracts"
@@ -38,27 +41,27 @@
   "author": "Winding Tree Developers <dev@windingtree.com>",
   "license": "GPL-3.0-only",
   "dependencies": {
-    "openzeppelin-solidity": "2.5.0",
-    "@windingtree/org.id": "0.10.0"
+    "@openzeppelin/contracts": "2.5.0",
+    "@windingtree/org.id": "0.11.4"
   },
   "devDependencies": {
     "@openzeppelin/cli": "2.7.1",
-    "@truffle/contract": "4.1.9",
-    "@truffle/hdwallet-provider": "1.0.31",
+    "@truffle/contract": "4.1.11",
+    "@truffle/hdwallet-provider": "1.0.32",
     "chai": "4.2.0",
     "coveralls": "3.0.9",
     "eslint": "6.8.0",
     "ganache-cli": "6.9.1",
     "husky": "4.2.3",
     "rimraf": "3.0.2",
-    "solc": "0.6.2",
+    "solc": "0.6.3",
     "solhint": "2.3.0",
     "solidity-coverage": "0.7.2",
     "solmd": "0.4.0",
-    "truffle": "5.1.13",
+    "truffle": "5.1.15",
     "truffle-flattener": "1.4.2"
   },
   "engines": {
-    "node": ">=10.19.0"
+    "node": ">=10"
   }
 }

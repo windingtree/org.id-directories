@@ -1,9 +1,9 @@
 pragma solidity >=0.5.16;
 
-import "openzeppelin-solidity/contracts/introspection/ERC165.sol";
-import "openzeppelin-solidity/contracts/introspection/ERC165Checker.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/introspection/ERC165.sol";
+import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
+import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@windingtree/org.id/contracts/OrgIdInterface.sol";
 import "./DirectoryInterface.sol";
@@ -13,7 +13,7 @@ import "./DirectoryInterface.sol";
  * @dev A Directory that can handle a list of organizations sharing a 
  * common segment such as hotels, airlines etc.
  */
-contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
+contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
 
     using SafeMath for uint256;
 
@@ -205,7 +205,8 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         );
 
         // Get the organization info from the ORG.ID registry
-        ( 
+        (
+            bool exist,
             , 
             , 
             , 
@@ -213,8 +214,14 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
             address orgOwner, 
             address director, 
             bool orgState, 
-            bool directorConfirmed
+            bool directorConfirmed,
+
         ) = orgId.getOrganization(organization);
+
+        require(
+            exist,
+            "Directory: Organization not found"
+        );
         
         require(
             orgOwner == msg.sender || director == msg.sender,
@@ -254,7 +261,22 @@ contract Directory is Ownable, DirectoryInterface, ERC165, Initializable {
         registeredOrganization(organization) 
     {
         // Get the organization info from the ORG.ID registry
-        ( , , , , address orgOwner, address director, , ) = orgId.getOrganization(organization);
+        ( 
+            bool exist,
+            , 
+            , 
+            , 
+            , 
+            address orgOwner, 
+            address director, 
+            , 
+            ,
+        ) = orgId.getOrganization(organization);
+
+        require(
+            exist,
+            "Directory: Organization not found"
+        );
 
         require(
             orgOwner == msg.sender || director == msg.sender,

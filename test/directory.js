@@ -315,7 +315,7 @@ contract('Directory', accounts => {
                     dir
                         .methods['add(bytes32)'](generateId(organizations[0]))
                         .send({ from: organizationOwner }),
-                    'OrgId: Organization with given orgId not found'
+                    'Directory: Organization not found'
                 );
             });
 
