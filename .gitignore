@@ -32,4 +32,4 @@ zos.dev-*
 # Project deployments
 !.openzeppelin/ropsten*
 !.openzeppelin/rinkeby*
-!.openzeppelin/mainnet*
+!.openzeppelin/main*
