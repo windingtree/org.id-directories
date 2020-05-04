@@ -42,6 +42,8 @@
     "@windingtree/org.id": "0.11.5"
   },
   "devDependencies": {
+    "@kleros/erc-792": "^3.0.0",
+    "@kleros/ethereum-libraries": "^1.0.0",
     "@openzeppelin/cli": "2.7.1",
     "@truffle/contract": "4.1.11",
     "@truffle/hdwallet-provider": "1.0.32",
