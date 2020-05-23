@@ -140,7 +140,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
 
     /**
      *  @dev Initializer for upgradeable contracts.
-     *  @param _governor The trusted governor of this contract..
+     *  @param _governor The trusted governor of this contract.
      *  @param _segment The segment name.
      *  @param _orgId The address of the ORG.ID contract.
      *  @param _lif The address of the Lif token.
@@ -234,7 +234,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     }
 
     /** @dev Change the time organization's owner has to make a withdrawal request.
-     *  @param _withdrawRequestTimeout The new duration of the withdraw timeout.
+     *  @param _withdrawRequestTimeout The new duration of the withdrawRequest timeout.
      */
     function changeWithdrawRequestTimeout(uint _withdrawRequestTimeout) external onlyGovernor {
         withdrawRequestTimeout = _withdrawRequestTimeout;
@@ -649,7 +649,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         uint stake = organization.lifStake;
         (,,,,, address orgOwner,,,,) = orgId.getOrganization(organization.ID);
         if (winner == Party.Requester) {
-            // If the organization was challenged during withdrawal process just send tokens to the orgOwner and set the status to default. The organization is not added in this case.
+            // If the organization is challenged during withdrawal process just send tokens to the orgOwner and set the status to default. The organization is not added in this case.
             if (organization.withdrawRequestTime != 0) {
                 organization.withdrawRequestTime = 0;
                 organization.status = Status.Absent;
