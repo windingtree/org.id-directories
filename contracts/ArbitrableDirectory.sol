@@ -1,12 +1,8 @@
 pragma solidity >=0.5.16;
 
-import "@openzeppelin/contracts/introspection/ERC165.sol";
-import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@windingtree/org.id/contracts/OrgIdInterface.sol";
-import "./DirectoryInterface.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IArbitrable, IArbitrator } from "@kleros/erc-792/contracts/IArbitrator.sol";
 import "@kleros/erc-792/contracts/erc-1497/IEvidence.sol";
 import "@kleros/ethereum-libraries/contracts/CappedMath.sol";
@@ -18,35 +14,29 @@ import "@kleros/ethereum-libraries/contracts/CappedMath.sol";
 /**
  *  @title ArbitrableDirectory
  *  @dev A Directory contract arbitrated by Kleros.
- *  In order to add or remove an organization from the directory firstly it should be given a corresponding verdict by the arbitrator contract.
+ *  Organizations are added or removed based on a ruling given by the arbitrator contract.
  *  NOTE: This contract trusts that the Arbitrator is honest and will not reenter or modify its costs during a call.
  *  The arbitrator must support appeal period.
  */
-contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializable, IArbitrable, IEvidence {
+contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
 
     using CappedMath for uint;
-    using SafeERC20 for IERC20;
 
     /* Enums */
 
-    enum Verdict  {
-        NONE, // No verdict has been given to the organization.
-        ADD, // The organization can be added to the directory.
-        REMOVE // The organization can be removed from the directory.
-    }
-
     enum Party {
         None, // Party per default when there is no challenger or requester. Also used for unconclusive ruling.
-        Requester, // Party that made a request to add the organization.
+        Requester, // Party that makes a request to add the organization.
         Challenger // Party that challenges the request.
     }
 
     enum Status {
         Absent, // The organization is not registered and doesn't have an open request.
         RegistrationRequested, // The organization has an open request.
-        Challenged, // The organization's request has been challenged.
-        Disputed, // The organization's request has been disputed.
-        Registered // The organization is considered registered.
+        WithdrawRequested, // The organization made a withdrawal request.
+        Challenged, // The organization has been challenged.
+        Disputed, // The challenge has been disputed.
+        Registered // The organization is registered.
     }
 
     /* Structs */
@@ -54,16 +44,16 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     struct Organization {
         bytes32 ID; // The ID of the organization.
         Status status; // The current status of the organization.
-        Verdict verdict; // Whether the organization can be added or removed.
-        address[] requesters; // List of addresses that made a request to add the organization to the directory. It is possible to have multiple requests if the organization is added, then removed and then added again etc.
-        uint requestTime; // The time when the recent request was made. Is used to track the withdrawal period.
+        address requester; // The address that made the last registration request. It is possible to have multiple requests if the organization is added, then removed and then added again etc.
+        uint requestTime; // The time when the last registration request was made. Is used to track the withdrawal period.
         uint lastStatusChange; // The time when the organization's status was updated. Only applies to the statuses that are time-sensitive, to track Execution and Response timeouts.
-        IERC20 lif; // The address of the Lif token used by the contract.
         uint lifStake; // The amount of Lif tokens, deposited by the requester when the request was made.
         Challenge[] challenges; // List of challenges made for the organization.
+        uint withdrawRequestTime; // The time when the withdrawal request was made.
     }
 
     struct Challenge {
+        bool disputed; // Whether the challenge has been disputed or not.
         uint disputeID; // The ID of the dispute raised in arbitrator contract, if any.
         bool resolved; // True if the request was executed or any raised disputes were resolved.
         address payable challenger; // The address that challenged the organization.
@@ -88,21 +78,23 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     /* Storage */
 
     OrgIdInterface public orgId; // An instance of the ORG.ID smart contract.
-    IERC20 public lif; // Lif token instance.
+    ERC20 public lif; // Lif token instance.
 
-    string internal segment; // Segment name, i.e. hotel, airline.
+    string public segment; // Segment name, i.e. hotel, airline.
+    address public governor; // The address that can make changes to the parameters of the contract.
 
     IArbitrator public arbitrator; // The arbitrator contract.
     bytes public arbitratorExtraData; // Extra data for the arbitrator contract.
 
     uint RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
 
-    uint public requesterDeposit; // The amount of Lif tokens a requester must deposit in order to open a request to add the organization.
+    uint public requesterDeposit; // The amount of Lif tokens in base units a requester must deposit in order to open a request to add the organization.
     uint public challengeBaseDeposit; // The base deposit to challenge the organization. Also the base deposit to accept the challenge.
 
     uint public executionTimeout; // The time after which the organization can be added to the directory if not challenged.
-    uint public responseTimeout; // The time the requester has to accept the challenge, or he will lose otherwise.
-    uint public withdrawTimeout; // The time the requester has to withdraw his Lif stake and un-register the organization from the directory.
+    uint public responseTimeout; // The time the requester has to accept the challenge, or he will lose otherwise. Note that any other address can accept the challenge on requester's behalf.
+    uint public withdrawRequestTimeout; // The time organization's owner has to make a request to withdraw the organization from the directory.
+    uint public withdrawTimeout; // The time after which it becomes possible to execute the withdrawal request and withdraw the Lif stake. The organization can still be challenged during this time, but not after.
 
     uint public metaEvidenceUpdates; // The number of times the meta evidence has been updated. Is used to track the latest meta evidence ID.
 
@@ -112,10 +104,14 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     uint public sharedStakeMultiplier; // Multiplier for calculating the fee stake that must be paid in the case where arbitrator refused to arbitrate.
     uint public constant MULTIPLIER_DIVISOR = 10000; // Divisor parameter for multipliers.
 
-    bytes32[] public organizations; // Stores all added organizations.
+    bytes32[] public registeredOrganizations; // Stores all added organizations.
     mapping(bytes32 => Organization) public organizationData; // Maps the organization to its data. organizationData[_organization].
     mapping(bytes32 => uint) public organizationsIndex; // Maps the organization to its index in the array. organizationsIndex[_organization].
-    mapping(address => mapping(uint => bytes32)) public arbitratorDisputeIDToOrg; // Maps a dispute ID to the organization. arbitratorDisputeIDToOrg[_arbitrator][_disputeID].
+    mapping(address => mapping(uint => bytes32)) public arbitratorDisputeIDToOrg; // Maps a dispute ID to the organization ID. arbitratorDisputeIDToOrg[_arbitrator][_disputeID].
+
+    /* Modifiers */
+
+    modifier onlyGovernor {require(msg.sender == governor, "The caller must be the governor."); _;}
 
     /* Events */
 
@@ -136,12 +132,6 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
      */
     event OrganizationRemoved(bytes32 indexed _organization);
 
-    /** @dev Event emitted when address of the Lif token is changed.
-     *  @param _previousAddress Previous address of the Lif token.
-     *  @param _newAddress New address of the Lif token.
-     */
-    event LifTokenChanged(address indexed _previousAddress, address indexed _newAddress);
-
     /* External and Public */
 
     // ************************ //
@@ -150,28 +140,29 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
 
     /**
      *  @dev Initializer for upgradeable contracts.
-     *  @param _owner The address of the contract owner.
+     *  @param _governor The trusted governor of this contract..
      *  @param _segment The segment name.
      *  @param _orgId The address of the ORG.ID contract.
      *  @param _lif The address of the Lif token.
      *  @param _arbitrator Arbitrator to resolve potential disputes. The arbitrator is trusted to support appeal periods and not reenter.
      *  @param _arbitratorExtraData Extra data for the trusted arbitrator contract.
      *  @param _metaEvidence The URI of the meta evidence object.
-     *  @param _requesterDeposit The amount of Lif tokens required to make a request.
+     *  @param _requesterDeposit The amount of Lif tokens in base units required to make a request.
      *  @param _challengeBaseDeposit The base deposit to challenge a request or to accept the challenge.
      *  @param _executionTimeout The time after which the organization will be registered if not challenged.
      *  @param _responseTimeout The time the requester has to answer to challenge.
-     *  @param _withdrawTimeout The time the requester has to withdraw his Lif stake.
+     *  @param _withdrawRequestTimeout The time the organization's owner has to make a withdrawal request.
+     *  @param _withdrawTimeout The time after which it becomes possible to execute the withdrawal request.
      *  @param _stakeMultipliers Multipliers of the arbitration cost in basis points (see MULTIPLIER_DIVISOR) as follows:
      *  - The multiplier applied to each party's fee stake for a round when there is no winner/loser in the previous round.
      *  - The multiplier applied to the winner's fee stake for the subsequent round.
      *  - The multiplier applied to the loser's fee stake for the subsequent round.
      */
     function initialize(
-        address payable _owner,
+        address _governor,
         string memory _segment,
-        address _orgId,
-        address _lif,
+        OrgIdInterface _orgId,
+        ERC20 _lif,
         IArbitrator _arbitrator,
         bytes memory _arbitratorExtraData,
         string memory _metaEvidence,
@@ -179,20 +170,15 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         uint _challengeBaseDeposit,
         uint _executionTimeout,
         uint _responseTimeout,
+        uint _withdrawRequestTimeout,
         uint _withdrawTimeout,
         uint[3] memory _stakeMultipliers
     ) public initializer {
-        require(_owner != address(0), "Directory: Invalid owner address.");
-        require(bytes(_segment).length != 0, "Directory: Segment cannot be empty.");
-        require(_orgId != address(0), "Directory: Invalid ORG.ID address.");
-        require(ERC165Checker._supportsInterface(_orgId, 0x36b78f0f), "Directory: ORG.ID instance has to support ORG.ID interface.");
-
         emit MetaEvidence(metaEvidenceUpdates, _metaEvidence);
-        setInterfaces();
-        _transferOwnership(_owner);
+        governor = _governor;
         segment = _segment;
-        orgId = OrgIdInterface(_orgId);
-        changeLifToken(_lif);
+        orgId = _orgId;
+        lif = _lif;
 
         arbitrator = _arbitrator;
         arbitratorExtraData = _arbitratorExtraData;
@@ -200,117 +186,85 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         challengeBaseDeposit = _challengeBaseDeposit;
         executionTimeout = _executionTimeout;
         responseTimeout = _responseTimeout;
+        withdrawRequestTimeout = _withdrawRequestTimeout;
         withdrawTimeout = _withdrawTimeout;
         sharedStakeMultiplier = _stakeMultipliers[0];
         winnerStakeMultiplier = _stakeMultipliers[1];
         loserStakeMultiplier = _stakeMultipliers[2];
 
-        organizationsIndex[bytes32(0)] = organizations.length;
-        organizations.push(bytes32(0));
-    }
-
-    /**
-     *  @dev Set the list of contract interfaces supported.
-     */
-    function setInterfaces() public {
-        Ownable own;
-        DirectoryInterface dir;
-        bytes4[4] memory interfaceIds = [
-            // ERC165 interface: 0x01ffc9a7
-            bytes4(0x01ffc9a7),
-
-            // ownable interface: 0x7f5828d0
-            own.owner.selector ^
-            own.transferOwnership.selector,
-
-            // directory interface: 0xcc915ab7
-            dir.setSegment.selector ^
-            dir.getSegment.selector ^
-            dir.add.selector ^
-            dir.remove.selector ^
-            dir.getOrganizations.selector,
-
-            // arbitrable interface: 0x311a6c56
-            bytes4(0x311a6c56)
-        ];
-        for (uint256 i = 0; i < interfaceIds.length; i++) {
-            _registerInterface(interfaceIds[i]);
-        }
+        organizationsIndex[bytes32(0)] = registeredOrganizations.length;
+        registeredOrganizations.push(bytes32(0));
     }
 
     /**
      *  @dev Allows the owner of the contract to change the segment name.
      *  @param _segment The new segment name.
      */
-    function setSegment(string calldata _segment) external onlyOwner {
-        require(bytes(_segment).length != 0, "Directory: Segment cannot be empty.");
+    function setSegment(string calldata _segment) external onlyGovernor {
         emit SegmentChanged(segment, _segment);
         segment = _segment;
-    }
-
-    /**
-     *  @dev Change Lif token.
-     *  @param _lif The new address of the Lif token.
-     */
-    function changeLifToken(address _lif) public onlyOwner {
-        require(_lif != address(0), "Directory: Invalid Lif token address.");
-        emit LifTokenChanged(address(lif), _lif);
-        lif = IERC20(_lif);
     }
 
     /** @dev Change the Lif token amount required to make a request.
      *  @param _requesterDeposit The new Lif token amount required to make a request.
      */
-    function changeRequesterDeposit(uint _requesterDeposit) external onlyOwner {
+    function changeRequesterDeposit(uint _requesterDeposit) external onlyGovernor {
         requesterDeposit = _requesterDeposit;
     }
 
     /** @dev Change the base amount required as a deposit to challenge the organization or to accept the challenge.
      *  @param _challengeBaseDeposit The new base amount of wei required to challenge or to accept the challenge.
      */
-    function changeChallengeBaseDeposit(uint _challengeBaseDeposit) external onlyOwner {
+    function changeChallengeBaseDeposit(uint _challengeBaseDeposit) external onlyGovernor {
         challengeBaseDeposit = _challengeBaseDeposit;
     }
 
     /** @dev Change the duration of the timeout after which the organization can be registered if not challenged.
      *  @param _executionTimeout The new duration of the execution timeout.
      */
-    function changeExecutionTimeout(uint _executionTimeout) external onlyOwner {
+    function changeExecutionTimeout(uint _executionTimeout) external onlyGovernor {
         executionTimeout = _executionTimeout;
     }
 
     /** @dev Change the duration of the time the requester has to accept the challenge.
      *  @param _responseTimeout The new duration of the response timeout.
      */
-    function changeResponseTimeout(uint _responseTimeout) external onlyOwner {
+    function changeResponseTimeout(uint _responseTimeout) external onlyGovernor {
         responseTimeout = _responseTimeout;
     }
 
-    /** @dev Change the duration of the time the requester has to withdraw his Lif stake.
+    /** @dev Change the time organization's owner has to make a withdrawal request.
+     *  @param _withdrawRequestTimeout The new duration of the withdraw timeout.
+     */
+    function changeWithdrawRequestTimeout(uint _withdrawRequestTimeout) external onlyGovernor {
+        withdrawRequestTimeout = _withdrawRequestTimeout;
+    }
+
+    /** @dev Change the duration of the time after which it becomes possible to execute the withdrawal request.
      *  @param _withdrawTimeout The new duration of the withdraw timeout.
      */
-    function changeWithdrawTimeout(uint _withdrawTimeout) external onlyOwner {
+    function changeWithdrawTimeout(uint _withdrawTimeout) external onlyGovernor {
         withdrawTimeout = _withdrawTimeout;
     }
 
     /** @dev Change the proportion of arbitration fees that must be paid as fee stake by parties when there is no winner or loser.
      *  @param _sharedStakeMultiplier Multiplier of arbitration fees that must be paid as fee stake. In basis points.
      */
-    function changeSharedStakeMultiplier(uint _sharedStakeMultiplier) external onlyOwner {
+    function changeSharedStakeMultiplier(uint _sharedStakeMultiplier) external onlyGovernor {
         sharedStakeMultiplier = _sharedStakeMultiplier;
     }
 
     /** @dev Change the proportion of arbitration fees that must be paid as fee stake by the winner of the previous round.
      *  @param _winnerStakeMultiplier Multiplier of arbitration fees that must be paid as fee stake. In basis points.
      */
-    function changeWinnerStakeMultiplier(uint _winnerStakeMultiplier) external onlyOwner {
+    function changeWinnerStakeMultiplier(uint _winnerStakeMultiplier) external onlyGovernor {
         winnerStakeMultiplier = _winnerStakeMultiplier;
     }
 
     /** @dev Change the proportion of arbitration fees that must be paid as fee stake by the party that lost the previous round.
      *  @param _loserStakeMultiplier Multiplier of arbitration fees that must be paid as fee stake. In basis points.
      */
-    function changeLoserStakeMultiplier(uint _loserStakeMultiplier) external onlyOwner {
+    function changeLoserStakeMultiplier(uint _loserStakeMultiplier) external onlyGovernor {
         loserStakeMultiplier = _loserStakeMultiplier;
     }
 
@@ -318,7 +272,7 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
      *  @param _arbitrator The new trusted arbitrator to be used in disputes.
      *  @param _arbitratorExtraData The extra data used by the new arbitrator.
      */
-    function changeArbitrator(IArbitrator _arbitrator, bytes calldata _arbitratorExtraData) external onlyOwner {
+    function changeArbitrator(IArbitrator _arbitrator, bytes calldata _arbitratorExtraData) external onlyGovernor {
         arbitrator = _arbitrator;
         arbitratorExtraData = _arbitratorExtraData;
     }
@@ -326,7 +280,7 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     /** @dev Update the meta evidence used for disputes.
      *  @param _metaEvidence The meta evidence to be used for future disputes.
      */
-    function changeMetaEvidence(string calldata _metaEvidence) external onlyOwner {
+    function changeMetaEvidence(string calldata _metaEvidence) external onlyGovernor {
         metaEvidenceUpdates++;
         emit MetaEvidence(metaEvidenceUpdates, _metaEvidence);
     }
@@ -337,17 +291,13 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
 
     /** @dev Make a request to add the organization to the directory. Requires a Lif deposit.
      *  @param _organization The ID of the organization.
-     *  @param _value The amount of deposited tokens.
      */
-    function requestToAdd(bytes32 _organization, uint _value) external {
+    function requestToAdd(bytes32 _organization) external {
         Organization storage organization = organizationData[_organization];
-        require(organization.status == Status.Absent, "Directory: The organization has wrong status.");
-        require(organization.verdict == Verdict.NONE, "Directory: The organization has already been given a verdict.");
-        require (_value == requesterDeposit, "Directory: Token value should match the required deposit.");
-
         // Get the organization info from the ORG.ID registry.
         (bool exist,,,,, address orgOwner, address director, bool orgState, bool directorConfirmed,) = orgId.getOrganization(_organization);
 
+        require(organization.status == Status.Absent, "Directory: The organization has wrong status.");
         require(exist, "Directory: Organization not found.");
         require(orgOwner == msg.sender || director == msg.sender, "Directory: Only organization owner or director can add the organization.");
         require(orgState, "Directory: Only enabled organizations can be added.");
@@ -357,26 +307,25 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
 
         organization.ID = _organization;
         organization.status = Status.RegistrationRequested;
-        organization.requesters.push(msg.sender);
+        organization.requester = msg.sender;
         organization.requestTime = now;
         organization.lastStatusChange = now;
-        organization.lif = lif;
-        organization.lifStake = _value;
-        organization.lif.safeTransferFrom(msg.sender, address(this), _value);
+        organization.lifStake = requesterDeposit;
+        require(lif.transferFrom(msg.sender, address(this), requesterDeposit), "Directory: The token transfer must not fail.");
     }
 
     /** @dev Challenge the organization. Accept enough ETH to cover the deposit, reimburse the rest.
      *  @param _organization The ID of the organization to challenge.
      *  @param _evidence A link to evidence using its URI. Ignored if not provided.
      */
-    function challengeRequest(bytes32 _organization, string calldata _evidence) external payable {
+    function challengeOrganization(bytes32 _organization, string calldata _evidence) external payable {
         Organization storage organization = organizationData[_organization];
         require(
-            organization.status == Status.RegistrationRequested || organization.status == Status.Registered,
+            organization.status == Status.RegistrationRequested || organization.status == Status.Registered || organization.status == Status.WithdrawRequested,
             "Directory: The organization should be either registered or registering."
         );
-        require(organization.verdict == Verdict.NONE, "Directory: The organization has already been given a verdict.");
-
+        if (organization.status == Status.WithdrawRequested)
+            require(now - organization.withdrawRequestTime <= withdrawTimeout, "Time to challenge the withdrawn organization has passed.");
         Challenge storage challenge = organization.challenges[organization.challenges.length++];
         organization.status = Status.Challenged;
         organization.lastStatusChange = now;
@@ -395,7 +344,7 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         round.hasPaid[uint(Party.Challenger)] = true;
 
         if (bytes(_evidence).length > 0)
-            emit Evidence(challenge.arbitrator, uint(keccak256(abi.encodePacked(_organization, organization.challenges.length - 1))), msg.sender, _evidence);
+            emit Evidence(challenge.arbitrator, uint(keccak256(abi.encodePacked(_organization, organization.challenges.length))), msg.sender, _evidence);
     }
 
     /** @dev Answer to the challenge and create a dispute. Accept enough ETH to cover the deposit, reimburse the rest.
@@ -404,12 +353,8 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
      */
     function acceptChallenge(bytes32 _organization, string calldata _evidence) external payable {
         Organization storage organization = organizationData[_organization];
-        require(organization.status == Status.Challenged, "Directory: The organization should be challenged.");
+        require(organization.status == Status.Challenged, "Directory: The organization should have status Challenged.");
         require(now - organization.lastStatusChange <= responseTimeout, "Directory: Time to accept the challenge has passed.");
-        require(
-            organization.requesters[organization.requesters.length - 1] == msg.sender,
-            "Directory: Only the requester can accept the challenge."
-        );
 
         Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
         organization.status = Status.Disputed;
@@ -423,10 +368,11 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         // Raise a dispute.
         challenge.disputeID = challenge.arbitrator.createDispute.value(arbitrationCost)(RULING_OPTIONS, challenge.arbitratorExtraData);
         arbitratorDisputeIDToOrg[address(challenge.arbitrator)][challenge.disputeID] = _organization;
+        challenge.disputed = true;
         challenge.rounds.length++;
         round.feeRewards = round.feeRewards.subCap(arbitrationCost);
 
-        uint evidenceGroupID = uint(keccak256(abi.encodePacked(_organization, organization.challenges.length - 1)));
+        uint evidenceGroupID = uint(keccak256(abi.encodePacked(_organization, organization.challenges.length)));
         emit Dispute(challenge.arbitrator, challenge.disputeID, challenge.metaEvidenceID, evidenceGroupID);
 
         if (bytes(_evidence).length > 0)
@@ -442,23 +388,34 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
             organization.status == Status.RegistrationRequested || organization.status == Status.Challenged,
             "Directory: The organization must have a pending status and not be disputed."
         );
+
         if (organization.status == Status.RegistrationRequested) {
             require(now - organization.lastStatusChange > executionTimeout, "Directory: Time to challenge the request must pass.");
             organization.status = Status.Registered;
-            // Add the organization if it wasn't already registered.
-            if (organizationsIndex[_organization] == 0)
-                organization.verdict = Verdict.ADD;
+            if (organizationsIndex[_organization] == 0) {
+                organizationsIndex[_organization] = registeredOrganizations.length;
+                registeredOrganizations.push(_organization);
+                emit OrganizationAdded(_organization, organizationsIndex[_organization]);
+            }
         } else {
             require(now - organization.lastStatusChange > responseTimeout, "Directory: Time to respond to the challenge must pass.");
             organization.status = Status.Absent;
+            if (organization.withdrawRequestTime != 0)
+                organization.withdrawRequestTime = 0;
             Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
             challenge.resolved = true;
             uint stake = organization.lifStake;
             organization.lifStake = 0;
-            organization.lif.safeTransfer(challenge.challenger, stake);
-            // Remove the organization if it was registered.
-            if (organizationsIndex[_organization] != 0)
-                organization.verdict = Verdict.REMOVE;
+            require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
+            if (organizationsIndex[_organization] != 0) {
+                uint index = organizationsIndex[_organization];
+                bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
+                registeredOrganizations[index] = lastOrg;
+                organizationsIndex[lastOrg] = index;
+                registeredOrganizations.length--;
+                organizationsIndex[_organization] = 0;
+                emit OrganizationRemoved(_organization);
+            }
         }
     }
 
@@ -549,32 +506,49 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         _beneficiary.send(reward);
     }
 
-    /** @dev Withdraw all the Lif tokens deposited when the request was made, and un-register the organization.
+    /** @dev Make a request to remove the organization and withdraw Lif tokens from the directory. The organization is removed right away but the tokens can only be withdrawn after withdrawTimeout, to prevent frontrunning the challengers.
+     *  @param _organization The ID of the organization.
+     */
+    function makeWihdrawalRequest(bytes32 _organization) external {
+        Organization storage organization = organizationData[_organization];
+        require(
+            organization.status == Status.RegistrationRequested || organization.status == Status.Registered,
+            "Directory: The organization has wrong status."
+        );
+        require(now - organization.requestTime <= withdrawRequestTimeout, "Directory: Time to make a withdrawal request has passed.");
+        (,,,,, address orgOwner, address director,,bool directorConfirmed,) = orgId.getOrganization(_organization);
+        require(orgOwner == msg.sender || director == msg.sender, "Directory: Only organization owner or director can request a withdraw.");
+        if (director != address(0))
+            require(directorConfirmed, "Directory: The director should be confirmed.");
+
+        organization.withdrawRequestTime = now;
+        organization.status = Status.WithdrawRequested;
+        uint index = organizationsIndex[_organization];
+        if (index != 0) {
+            bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
+            registeredOrganizations[index] = lastOrg;
+            organizationsIndex[lastOrg] = index;
+            registeredOrganizations.length--;
+            organizationsIndex[_organization] = 0;
+        }
+    }
+
+    /** @dev Withdraw all the Lif tokens deposited when the request was made.
      *  @param _organization The ID of the organization to un-register.
      */
     function withdrawTokens(bytes32 _organization) external {
         Organization storage organization = organizationData[_organization];
         require(
-            organization.status != Status.Disputed && organization.status != Status.Absent,
+            organization.status == Status.WithdrawRequested,
             "Directory: The organization has wrong status."
         );
-        require(now - organization.requestTime <= withdrawTimeout, "Directory: Time to withdraw tokens has already passed.");
-        require(organization.requesters[organization.requesters.length - 1] == msg.sender, "Directory: Only the requester can withdraw tokens.");
-        // Close the open challenge if there were any. The challenger will be able to withdraw his deposit.
-        if (organization.status == Status.Challenged) {
-            Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
-            challenge.resolved = true;
-        }
+        require(now - organization.withdrawRequestTime > withdrawTimeout, "Directory: Tokens can only be withdrawn after the timeout.");
+        (,,,,, address orgOwner,,,,) = orgId.getOrganization(_organization);
         organization.status = Status.Absent;
+        organization.withdrawRequestTime = 0;
         uint stake = organization.lifStake;
         organization.lifStake = 0;
-        organization.lif.safeTransfer(msg.sender, stake);
-        uint256 index = organizationsIndex[_organization];
-        if (index != 0) {
-            delete organizations[index];
-            delete organizationsIndex[_organization];
-            emit OrganizationRemoved(_organization);
-        }
+        require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
     }
 
     /** @dev Give a ruling for a dispute. Can only be called by the arbitrator. TRUSTED.
@@ -609,40 +583,16 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
      */
     function submitEvidence(bytes32 _organization, string calldata _evidence) external {
         Organization storage organization = organizationData[_organization];
-        require(organization.challenges.length > 0, "Directory: The organization was never challenged.");
-        Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
-        require(!challenge.resolved, "Directory: The challenge must not already be resolved.");
 
-        uint evidenceGroupID = uint(keccak256(abi.encodePacked(_organization, organization.challenges.length - 1)));
-        if (bytes(_evidence).length > 0)
-            emit Evidence(challenge.arbitrator, evidenceGroupID, msg.sender, _evidence);
-    }
-
-    /** @dev Add an organization to the directory. Requires a corresponding verdict from the arbitrator.
-     *  @param  _organization The ID of the organization to add.
-     *  @return id The ID of the organization.
-     */
-    function add(bytes32 _organization) external returns (bytes32 id) {
-        Organization storage organization = organizationData[_organization];
-        require(organization.verdict == Verdict.ADD, "Directory: The organization can't be added without corresponding verdict.");
-        organizationsIndex[_organization] = organizations.length;
-        organizations.push(_organization);
-        organization.verdict = Verdict.NONE;
-        emit OrganizationAdded(_organization, organizationsIndex[_organization]);
-        return _organization;
-    }
-
-    /** @dev Remove an organization from the directory. Requires a corresponding verdict from the arbitrator.
-     *  @param  _organization  The ID of the organization to remove.
-     */
-    function remove(bytes32 _organization) external {
-        Organization storage organization = organizationData[_organization];
-        require(organization.verdict == Verdict.REMOVE, "Directory: The organization can't be removed without corresponding verdict.");
-        uint256 index = organizationsIndex[_organization];
-        delete organizations[index];
-        delete organizationsIndex[_organization];
-        organization.verdict = Verdict.NONE;
-        emit OrganizationRemoved(_organization);
+        uint evidenceGroupID = uint(keccak256(abi.encodePacked(_organization, organization.challenges.length)));
+        if (bytes(_evidence).length > 0) {
+            if (organization.challenges.length > 0) {
+                Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
+                require(!challenge.resolved, "The challenge must not be resolved.");
+                emit Evidence(challenge.arbitrator, evidenceGroupID, msg.sender, _evidence);
+            } else
+                emit Evidence(arbitrator, evidenceGroupID, msg.sender, _evidence);
+        }
     }
 
     /* Internal */
@@ -695,28 +645,50 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         bytes32 organizationID = arbitratorDisputeIDToOrg[msg.sender][_disputeID];
         Organization storage organization = organizationData[organizationID];
         Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
-
         Party winner = Party(_ruling);
         uint stake = organization.lifStake;
-
-        // Add the organization if it's not in the directory.
+        (,,,,, address orgOwner,,,,) = orgId.getOrganization(organization.ID);
         if (winner == Party.Requester) {
-            organization.status = Status.Registered;
-            if (organizationsIndex[organization.ID] == 0)
-                organization.verdict = Verdict.ADD;
+            // If the organization was challenged during withdrawal process just send tokens to the orgOwner and set the status to default. The organization is not added in this case.
+            if (organization.withdrawRequestTime != 0) {
+                organization.withdrawRequestTime = 0;
+                organization.status = Status.Absent;
+                organization.lifStake = 0;
+                require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
+            } else {
+                organization.status = Status.Registered;
+                // Add the organization if it's not in the directory.
+                if (organizationsIndex[organization.ID] == 0) {
+                    organizationsIndex[organization.ID] = registeredOrganizations.length;
+                    registeredOrganizations.push(organization.ID);
+                    emit OrganizationAdded(organization.ID, organizationsIndex[organization.ID]);
+                }
+            }
         // Remove the organization if it is in the directory. Send Lif tokens to the challenger.
         } else if (winner == Party.Challenger) {
             organization.status = Status.Absent;
+            if (organization.withdrawRequestTime != 0)
+                organization.withdrawRequestTime = 0;
             organization.lifStake = 0;
-            organization.lif.safeTransfer(challenge.challenger, stake);
-            if (organizationsIndex[organization.ID] != 0)
-                organization.verdict = Verdict.REMOVE;
+            require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
+            if (organizationsIndex[organization.ID] != 0) {
+                uint index = organizationsIndex[organization.ID];
+                bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
+                registeredOrganizations[index] = lastOrg;
+                organizationsIndex[lastOrg] = index;
+                registeredOrganizations.length--;
+                organizationsIndex[organization.ID] = 0;
+                emit OrganizationRemoved(organization.ID);
+            }
         // 0 ruling. Revert the organization to its default state.
         } else {
             if (organizationsIndex[organization.ID] == 0) {
                 organization.status = Status.Absent;
+                if (organization.withdrawRequestTime != 0)
+                    organization.withdrawRequestTime = 0;
                 organization.lifStake = 0;
-                organization.lif.safeTransfer(organization.requesters[organization.requesters.length - 1], stake);
+                require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
+            // Stake of the already registered organization stays in the contract in this case.
             } else
                 organization.status = Status.Registered;
         }
@@ -729,13 +701,6 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     // *       Getters        * //
     // ************************ //
 
-    /** @dev Get the name of the segment.
-     *  @return The segment name.
-     */
-    function getSegment() external view returns (string memory) {
-        return segment;
-    }
-
     /** @dev Get all the registered organizations.
      *  @return organizationsList Array of organization IDs.
      */
@@ -746,20 +711,20 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     {
         organizationsList = new bytes32[](_getOrganizationsCount());
         uint index;
-        for (uint i = 0; i < organizations.length; i++) {
-            if (organizations[i] != bytes32(0)) {
-                organizationsList[index] = organizations[i];
+        for (uint i = 0; i < registeredOrganizations.length; i++) {
+            if (registeredOrganizations[i] != bytes32(0)) {
+                organizationsList[index] = registeredOrganizations[i];
                 index++;
             }
         }
     }
 
-    /** @dev Return organizations array length.
+    /** @dev Return registeredOrganizations array length.
      *  @return count Length of the organizations array.
      */
     function _getOrganizationsCount() internal view returns (uint count) {
-        for (uint i = 0; i < organizations.length; i++) {
-            if (organizations[i] != bytes32(0))
+        for (uint i = 0; i < registeredOrganizations.length; i++) {
+            if (registeredOrganizations[i] != bytes32(0))
                count++;
         }
     }
@@ -783,27 +748,24 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         contributions = round.contributions[_contributor];
     }
 
-    /** @dev Get the organization info that can't be returned with struct.
+    /** @dev Get the number of challenges of the organization.
      *  @param _organization The ID of the organization.
      *  @return numberOfChallenges Total number of times the organization was challenged.
-     *  @return requesters Array of addresses that made a request to add the organization to the directory.
      */
-    function getOrgInfo(bytes32 _organization)
+    function getNumberOfChallenges(bytes32 _organization)
         external
         view
         returns (
-            uint numberOfChallenges,
-            address[] memory requesters
+            uint numberOfChallenges
         )
     {
         Organization storage organization = organizationData[_organization];
         return (
-            organization.challenges.length,
-            organization.requesters
+            organization.challenges.length
         );
     }
 
-    /** @dev Get the information on a challenge made for the organization.
+    /** @dev Get the information of a challenge made for the organization.
      *  @param _organization The ID of the organization.
      *  @param _challenge The challenge to query.
      *  @return The challenge information.
@@ -812,6 +774,7 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
         external
         view
         returns (
+            bool disputed,
             uint disputeID,
             bool resolved,
             address payable challenger,
@@ -824,6 +787,7 @@ contract ArbitrableDirectory is DirectoryInterface, Ownable, ERC165, Initializab
     {
         Challenge storage challenge = organizationData[_organization].challenges[_challenge];
         return (
+            challenge.disputed,
             challenge.disputeID,
             challenge.resolved,
             challenge.challenger,
