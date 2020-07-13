@@ -1,4 +1,4 @@
-pragma solidity >=0.5.16;
+pragma solidity ^0.5.16;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@windingtree/org.id/contracts/OrgIdInterface.sol";
@@ -33,7 +33,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     enum Status {
         Absent, // The organization is not registered and doesn't have an open request.
         RegistrationRequested, // The organization has an open request.
-        WithdrawRequested, // The organization made a withdrawal request.
+        WithdrawalRequested, // The organization made a withdrawal request.
         Challenged, // The organization has been challenged.
         Disputed, // The challenge has been disputed.
         Registered // The organization is registered.
@@ -46,10 +46,10 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         Status status; // The current status of the organization.
         address requester; // The address that made the last registration request. It is possible to have multiple requests if the organization is added, then removed and then added again etc.
         uint requestTime; // The time when the last registration request was made. Is used to track the withdrawal period.
-        uint lastStatusChange; // The time when the organization's status was updated. Only applies to the statuses that are time-sensitive, to track Execution and Response timeouts.
+        uint lastStatusChange; // The time when the organization's status was updated. Only applies to the statuses that are time-sensitive, to track Execution and Response timeouts. Doesn't apply to the withdrawal timeouts.
         uint lifStake; // The amount of Lif tokens, deposited by the requester when the request was made.
         Challenge[] challenges; // List of challenges made for the organization.
-        uint withdrawRequestTime; // The time when the withdrawal request was made.
+        uint withdrawalRequestTime; // The time when the withdrawal request was made.
     }
 
     struct Challenge {
@@ -93,7 +93,6 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
 
     uint public executionTimeout; // The time after which the organization can be added to the directory if not challenged.
     uint public responseTimeout; // The time the requester has to accept the challenge, or he will lose otherwise. Note that any other address can accept the challenge on requester's behalf.
-    uint public withdrawRequestTimeout; // The time organization's owner has to make a request to withdraw the organization from the directory.
     uint public withdrawTimeout; // The time after which it becomes possible to execute the withdrawal request and withdraw the Lif stake. The organization can still be challenged during this time, but not after.
 
     uint public metaEvidenceUpdates; // The number of times the meta evidence has been updated. Is used to track the latest meta evidence ID.
@@ -144,14 +143,13 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
      *  @param _segment The segment name.
      *  @param _orgId The address of the ORG.ID contract.
      *  @param _lif The address of the Lif token.
-     *  @param _arbitrator Arbitrator to resolve potential disputes. The arbitrator is trusted to support appeal periods and not reenter.
+     *  @param _arbitrator Arbitrator to resolve potential disputes. The arbitrator is trusted to support appeal periods, not to reenter and to behave honestly.
      *  @param _arbitratorExtraData Extra data for the trusted arbitrator contract.
      *  @param _metaEvidence The URI of the meta evidence object.
      *  @param _requesterDeposit The amount of Lif tokens in base units required to make a request.
      *  @param _challengeBaseDeposit The base deposit to challenge a request or to accept the challenge.
      *  @param _executionTimeout The time after which the organization will be registered if not challenged.
      *  @param _responseTimeout The time the requester has to answer to challenge.
-     *  @param _withdrawRequestTimeout The time the organization's owner has to make a withdrawal request.
      *  @param _withdrawTimeout The time after which it becomes possible to execute the withdrawal request.
      *  @param _stakeMultipliers Multipliers of the arbitration cost in basis points (see MULTIPLIER_DIVISOR) as follows:
      *  - The multiplier applied to each party's fee stake for a round when there is no winner/loser in the previous round.
@@ -170,7 +168,6 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         uint _challengeBaseDeposit,
         uint _executionTimeout,
         uint _responseTimeout,
-        uint _withdrawRequestTimeout,
         uint _withdrawTimeout,
         uint[3] memory _stakeMultipliers
     ) public initializer {
@@ -186,7 +183,6 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         challengeBaseDeposit = _challengeBaseDeposit;
         executionTimeout = _executionTimeout;
         responseTimeout = _responseTimeout;
-        withdrawRequestTimeout = _withdrawRequestTimeout;
         withdrawTimeout = _withdrawTimeout;
         sharedStakeMultiplier = _stakeMultipliers[0];
         winnerStakeMultiplier = _stakeMultipliers[1];
@@ -197,7 +193,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     }
 
     /**
-     *  @dev Allows the owner of the contract to change the segment name.
+     *  @dev Allows the governor of the contract to change the segment name.
      *  @param _segment The new segment name.
      */
     function setSegment(string calldata _segment) external onlyGovernor {
@@ -231,13 +227,6 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
      */
     function changeResponseTimeout(uint _responseTimeout) external onlyGovernor {
         responseTimeout = _responseTimeout;
-    }
-
-    /** @dev Change the time organization's owner has to make a withdrawal request.
-     *  @param _withdrawRequestTimeout The new duration of the withdrawRequest timeout.
-     */
-    function changeWithdrawRequestTimeout(uint _withdrawRequestTimeout) external onlyGovernor {
-        withdrawRequestTimeout = _withdrawRequestTimeout;
     }
 
     /** @dev Change the duration of the time after which it becomes possible to execute the withdrawal request.
@@ -299,11 +288,8 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
 
         require(organization.status == Status.Absent, "Directory: The organization has wrong status.");
         require(exist, "Directory: Organization not found.");
-        require(orgOwner == msg.sender || director == msg.sender, "Directory: Only organization owner or director can add the organization.");
+        require(orgOwner == msg.sender || (director == msg.sender && directorConfirmed), "Directory: Only organization owner or director can add the organization.");
         require(orgState, "Directory: Only enabled organizations can be added.");
-
-        if (director != address(0))
-            require(directorConfirmed, "Directory: Only subsidiaries with confirmed director ownership can be added.");
 
         organization.ID = _organization;
         organization.status = Status.RegistrationRequested;
@@ -321,11 +307,11 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     function challengeOrganization(bytes32 _organization, string calldata _evidence) external payable {
         Organization storage organization = organizationData[_organization];
         require(
-            organization.status == Status.RegistrationRequested || organization.status == Status.Registered || organization.status == Status.WithdrawRequested,
+            organization.status == Status.RegistrationRequested || organization.status == Status.Registered || organization.status == Status.WithdrawalRequested,
             "Directory: The organization should be either registered or registering."
         );
-        if (organization.status == Status.WithdrawRequested)
-            require(now - organization.withdrawRequestTime <= withdrawTimeout, "Time to challenge the withdrawn organization has passed.");
+        if (organization.status == Status.WithdrawalRequested)
+            require(now - organization.withdrawalRequestTime <= withdrawTimeout, "Time to challenge the withdrawn organization has passed.");
         Challenge storage challenge = organization.challenges[organization.challenges.length++];
         organization.status = Status.Challenged;
         organization.lastStatusChange = now;
@@ -400,8 +386,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         } else {
             require(now - organization.lastStatusChange > responseTimeout, "Directory: Time to respond to the challenge must pass.");
             organization.status = Status.Absent;
-            if (organization.withdrawRequestTime != 0)
-                organization.withdrawRequestTime = 0;
+            organization.withdrawalRequestTime = 0;
             Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
             challenge.resolved = true;
             uint stake = organization.lifStake;
@@ -515,14 +500,11 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
             organization.status == Status.RegistrationRequested || organization.status == Status.Registered,
             "Directory: The organization has wrong status."
         );
-        require(now - organization.requestTime <= withdrawRequestTimeout, "Directory: Time to make a withdrawal request has passed.");
         (,,,,, address orgOwner, address director,,bool directorConfirmed,) = orgId.getOrganization(_organization);
-        require(orgOwner == msg.sender || director == msg.sender, "Directory: Only organization owner or director can request a withdraw.");
-        if (director != address(0))
-            require(directorConfirmed, "Directory: The director should be confirmed.");
+        require(orgOwner == msg.sender || (director == msg.sender && directorConfirmed), "Directory: Only organization owner or director can request a withdrawal.");
 
-        organization.withdrawRequestTime = now;
-        organization.status = Status.WithdrawRequested;
+        organization.withdrawalRequestTime = now;
+        organization.status = Status.WithdrawalRequested;
         uint index = organizationsIndex[_organization];
         if (index != 0) {
             bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
@@ -539,13 +521,13 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     function withdrawTokens(bytes32 _organization) external {
         Organization storage organization = organizationData[_organization];
         require(
-            organization.status == Status.WithdrawRequested,
+            organization.status == Status.WithdrawalRequested,
             "Directory: The organization has wrong status."
         );
-        require(now - organization.withdrawRequestTime > withdrawTimeout, "Directory: Tokens can only be withdrawn after the timeout.");
+        require(now - organization.withdrawalRequestTime > withdrawTimeout, "Directory: Tokens can only be withdrawn after the timeout.");
         (,,,,, address orgOwner,,,,) = orgId.getOrganization(_organization);
         organization.status = Status.Absent;
-        organization.withdrawRequestTime = 0;
+        organization.withdrawalRequestTime = 0;
         uint stake = organization.lifStake;
         organization.lifStake = 0;
         require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
@@ -650,8 +632,8 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         (,,,,, address orgOwner,,,,) = orgId.getOrganization(organization.ID);
         if (winner == Party.Requester) {
             // If the organization is challenged during withdrawal process just send tokens to the orgOwner and set the status to default. The organization is not added in this case.
-            if (organization.withdrawRequestTime != 0) {
-                organization.withdrawRequestTime = 0;
+            if (organization.withdrawalRequestTime != 0) {
+                organization.withdrawalRequestTime = 0;
                 organization.status = Status.Absent;
                 organization.lifStake = 0;
                 require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
@@ -667,8 +649,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         // Remove the organization if it is in the directory. Send Lif tokens to the challenger.
         } else if (winner == Party.Challenger) {
             organization.status = Status.Absent;
-            if (organization.withdrawRequestTime != 0)
-                organization.withdrawRequestTime = 0;
+            organization.withdrawalRequestTime = 0;
             organization.lifStake = 0;
             require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
             if (organizationsIndex[organization.ID] != 0) {
@@ -684,8 +665,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         } else {
             if (organizationsIndex[organization.ID] == 0) {
                 organization.status = Status.Absent;
-                if (organization.withdrawRequestTime != 0)
-                    organization.withdrawRequestTime = 0;
+                organization.withdrawalRequestTime = 0;
                 organization.lifStake = 0;
                 require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
             // Stake of the already registered organization stays in the contract in this case.
