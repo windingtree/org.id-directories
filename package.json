@@ -39,7 +39,7 @@
   "license": "GPL-3.0-only",
   "dependencies": {
     "@openzeppelin/contracts": "2.5.0",
-    "@windingtree/org.id": "0.11.5"
+    "@windingtree/org.id": "^1.1.0"
   },
   "devDependencies": {
     "@kleros/erc-792": "^3.0.0",
@@ -52,6 +52,7 @@
     "eslint": "6.8.0",
     "ganache-cli": "6.9.1",
     "husky": "4.2.3",
+    "openzeppelin-test-helpers": "^0.5.1",
     "rimraf": "3.0.2",
     "solc": "0.6.3",
     "solhint": "2.3.0",

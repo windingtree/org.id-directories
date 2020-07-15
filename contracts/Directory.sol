@@ -206,20 +206,21 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
 
         // Get the organization info from the ORG.ID registry
         (
-            bool exist,
-            , 
-            , 
-            , 
-            , 
-            address orgOwner, 
-            address director, 
-            bool orgState, 
-            bool directorConfirmed,
-
+            bool exists,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            address orgOwner,
+            address director,
+            bool isActive,
+            bool isDirectorshipAccepted
         ) = orgId.getOrganization(organization);
 
         require(
-            exist,
+            exists,
             "Directory: Organization not found"
         );
         
@@ -228,13 +229,13 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             "Directory: Only organization owner or director can add the organization"
         );
         require(
-            orgState,
+            isActive,
             "Directory: Only enabled organizations can be added"
         );
         
         if (director != address(0)) {
             require(
-                directorConfirmed,
+                isDirectorshipAccepted,
                 "Directory: Only subsidiaries with confirmed director ownership can be added"
             );
         }
@@ -262,19 +263,20 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
     {
         // Get the organization info from the ORG.ID registry
         ( 
-            bool exist,
-            , 
-            , 
-            , 
-            , 
-            address orgOwner, 
-            address director, 
-            , 
+            bool exists,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            address orgOwner,
+            address director,
             ,
         ) = orgId.getOrganization(organization);
 
         require(
-            exist,
+            exists,
             "Directory: Organization not found"
         );
 
