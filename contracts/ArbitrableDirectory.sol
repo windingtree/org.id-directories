@@ -492,7 +492,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     /** @dev Make a request to remove the organization and withdraw Lif tokens from the directory. The organization is removed right away but the tokens can only be withdrawn after withdrawTimeout, to prevent frontrunning the challengers.
      *  @param _organization The ID of the organization.
      */
-    function makeWihdrawalRequest(bytes32 _organization) external {
+    function makeWithdrawalRequest(bytes32 _organization) external {
         Organization storage organization = organizationData[_organization];
         require(
             organization.status == Status.RegistrationRequested || organization.status == Status.Registered,

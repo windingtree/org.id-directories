@@ -716,10 +716,10 @@ contract('ArbitrableDirectory', function(accounts) {
     await aD.executeTimeout(ID, { from: requester })
 
     await expectRevert(
-      aD.makeWihdrawalRequest(ID, { from: other }),
+      aD.makeWithdrawalRequest(ID, { from: other }),
       'Directory: Only organization owner or director can request a withdrawal.'
     )
-    txWithdrawal = await aD.makeWihdrawalRequest(ID, { from: requester })
+    txWithdrawal = await aD.makeWithdrawalRequest(ID, { from: requester })
 
     const orgData = await aD.organizationData(ID)
     assert.equal(
@@ -749,7 +749,7 @@ contract('ArbitrableDirectory', function(accounts) {
 
   it('Should not be possible to challenge after withdraw timeout', async () => {
     await aD.requestToAdd(ID, { from: requester })
-    await aD.makeWihdrawalRequest(ID, { from: requester })
+    await aD.makeWithdrawalRequest(ID, { from: requester })
     await time.increase(withdrawTimeout + 1)
     await expectRevert(
       aD.challengeOrganization(ID, 'Evidence.json', {
@@ -766,7 +766,7 @@ contract('ArbitrableDirectory', function(accounts) {
       aD.withdrawTokens(ID, { from: other }),
       'Directory: The organization has wrong status.'
     )
-    await aD.makeWihdrawalRequest(ID, { from: requester })
+    await aD.makeWithdrawalRequest(ID, { from: requester })
     await expectRevert(
       aD.withdrawTokens(ID, { from: other }),
       'Directory: Tokens can only be withdrawn after the timeout.'
@@ -1092,7 +1092,7 @@ contract('ArbitrableDirectory', function(accounts) {
     await time.increase(executionTimeout + 1)
     await aD.executeTimeout(ID, { from: requester })
 
-    await aD.makeWihdrawalRequest(ID, { from: requester })
+    await aD.makeWithdrawalRequest(ID, { from: requester })
 
     await aD.challengeOrganization(ID, 'Evidence.json', {
       from: challenger,
