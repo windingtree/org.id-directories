@@ -128,8 +128,8 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     event SegmentChanged(string _previousSegment, string _newSegment);
 
     /** @dev Event triggered when a request to add an organization is made.
-    *  @param _organization The organization that was added.
-    */
+     *  @param _organization The organization that was added.
+     */
     event OrganizationSubmitted(bytes32 indexed _organization);
 
     /** @dev Event triggered every time organization is added.
