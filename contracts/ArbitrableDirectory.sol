@@ -127,6 +127,11 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
      */
     event SegmentChanged(string _previousSegment, string _newSegment);
 
+    /** @dev Event triggered when a request to add an organization is made.
+    *  @param _organization The organization that was added.
+    */
+    event OrganizationSubmitted(bytes32 indexed _organization);
+
     /** @dev Event triggered every time organization is added.
      *  @param _organization The organization that was added.
      *  @param _index Organization's index in the array.
@@ -285,7 +290,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     // *   Requests and Challenges  * //
     // ****************************** //
 
-    /** @dev Make a request to add the organization to the directory. Requires a Lif deposit.
+    /** @dev Make a request to add an organization to the directory. Requires a Lif deposit.
      *  @param _organization The ID of the organization.
      */
     function requestToAdd(bytes32 _organization) external {
@@ -304,6 +309,8 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         organization.lastStatusChange = now;
         organization.lifStake = requesterDeposit;
         require(lif.transferFrom(msg.sender, address(this), requesterDeposit), "Directory: The token transfer must not fail.");
+
+        emit OrganizationSubmitted(_organization);
     }
 
     /** @dev Challenge the organization. Accept enough ETH to cover the deposit, reimburse the rest.
@@ -690,16 +697,18 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     // ************************ //
 
     /** @dev Get all the registered organizations.
+     *  @param _cursor Index of the organization from which to start querying.
+     *  @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
      *  @return organizationsList Array of organization IDs.
      */
-    function getOrganizations()
+    function getOrganizations(uint _cursor, uint _count)
         external
         view
         returns (bytes32[] memory organizationsList)
     {
-        organizationsList = new bytes32[](getOrganizationsCount());
+        organizationsList = new bytes32[](getOrganizationsCount(_cursor, _count));
         uint index;
-        for (uint i = 0; i < registeredOrganizations.length; i++) {
+        for (uint i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
             if (registeredOrganizations[i] != bytes32(0)) {
                 organizationsList[index] = registeredOrganizations[i];
                 index++;
@@ -708,10 +717,12 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     }
 
     /** @dev Return registeredOrganizations array length.
+     *  @param _cursor Index of the organization from which to start counting.
+     *  @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
      *  @return count Length of the organizations array.
      */
-    function getOrganizationsCount() public view returns (uint count) {
-        for (uint i = 0; i < registeredOrganizations.length; i++) {
+    function getOrganizationsCount(uint _cursor, uint _count) public view returns (uint count) {
+        for (uint i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
             if (registeredOrganizations[i] != bytes32(0))
                count++;
         }

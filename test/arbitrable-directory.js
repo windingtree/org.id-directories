@@ -580,7 +580,7 @@ contract('ArbitrableDirectory', function(accounts) {
     await aD.executeTimeout(ID, { from: other })
     await aD.executeTimeout(ID2, { from: other })
 
-    let count = (await aD.getOrganizationsCount()).toNumber()
+    let count = (await aD.getOrganizationsCount(0, 0)).toNumber()
     assert.equal(count, 2, 'Incorrect number of registered organizations')
     assert.equal(
       (await lif.balanceOf(aD.address)).toNumber(),
@@ -640,7 +640,7 @@ contract('ArbitrableDirectory', function(accounts) {
       'Incorrect token balance of the contract after execution'
     )
 
-    count = (await aD.getOrganizationsCount()).toNumber()
+    count = (await aD.getOrganizationsCount(0, 0)).toNumber()
     assert.equal(
       count,
       1,
@@ -730,7 +730,7 @@ contract('ArbitrableDirectory', function(accounts) {
     const orgIndex = (await aD.organizationsIndex(ID)).toNumber()
     assert.equal(orgIndex, 0, 'The organization should have 0 index')
     assert.equal(
-      (await aD.getOrganizationsCount()).toNumber(),
+      (await aD.getOrganizationsCount(0, 0)).toNumber(),
       0,
       'Organization count should be 0'
     )
@@ -1048,7 +1048,7 @@ contract('ArbitrableDirectory', function(accounts) {
     const orgIndex = (await aD.organizationsIndex(ID)).toNumber()
     assert.equal(orgIndex, 0, 'The organization should have 0 index')
 
-    count = (await aD.getOrganizationsCount()).toNumber()
+    count = (await aD.getOrganizationsCount(0, 0)).toNumber()
     assert.equal(
       count,
       0,
@@ -1077,7 +1077,7 @@ contract('ArbitrableDirectory', function(accounts) {
     const orgIndex = (await aD.organizationsIndex(ID)).toNumber()
     assert.equal(orgIndex, 1, 'The organization should have 1 index')
 
-    count = (await aD.getOrganizationsCount()).toNumber()
+    count = (await aD.getOrganizationsCount(0, 0)).toNumber()
     assert.equal(count, 1, 'The contract should have 1 registered organization')
 
     assert.equal(
