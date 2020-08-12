@@ -553,13 +553,13 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
      *  @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
     function rule(uint _disputeID, uint _ruling) public {
+        require(_ruling <= RULING_OPTIONS, "Directory: Invalid ruling option.");       
         Party resultRuling = Party(_ruling);
         bytes32 organizationID = arbitratorDisputeIDToOrg[msg.sender][_disputeID];
         Organization storage organization = organizationData[organizationID];
 
         Challenge storage challenge = organization.challenges[organization.challenges.length - 1];
         Round storage round = challenge.rounds[challenge.rounds.length - 1];
-        require(_ruling <= RULING_OPTIONS, "Directory: Invalid ruling option.");
         require(address(challenge.arbitrator) == msg.sender, "Directory: Only the arbitrator can give a ruling.");
         require(!challenge.resolved, "Directory: The challenge must not be resolved.");
 
