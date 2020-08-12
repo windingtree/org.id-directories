@@ -295,10 +295,10 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
      */
     function requestToAdd(bytes32 _organization) external {
         Organization storage organization = organizationData[_organization];
+        require(organization.status == Status.Absent, "Directory: The organization must be either registered or registering.");
+        
         // Get the organization info from the ORG.ID registry.
         (bool exists,,,,,,, address orgOwner, address director, bool isActive, bool isDirectorshipAccepted) = orgId.getOrganization(_organization);
-
-        require(organization.status == Status.Absent, "Directory: The organization must be either registered or registering.");
         require(exists, "Directory: Organization not found.");
         require(orgOwner == msg.sender || (director == msg.sender && isDirectorshipAccepted), "Directory: Only organization owner or director can add the organization.");
         require(isActive, "Directory: Only enabled organizations can be added.");
