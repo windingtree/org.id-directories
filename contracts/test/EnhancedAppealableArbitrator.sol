@@ -11,6 +11,8 @@ pragma solidity ^0.5.11;
 import "./AppealableArbitrator.sol";
 import "@windingtree/org.id/contracts/OrgId.sol"; // Test import.
 
+/* solhint-disable max-line-length */
+
 /**
  *  @title EnhancedAppealableArbitrator
  *  @author Enrique Piqueras - <epiquerass@gmail.com>

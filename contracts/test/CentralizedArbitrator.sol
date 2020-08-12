@@ -10,6 +10,8 @@ pragma solidity ^0.5.11;
 
 import { IArbitrator, IArbitrable } from "@kleros/erc-792/contracts/IArbitrator.sol";
 
+/* solhint-disable max-line-length */
+
 /** @title Centralized Arbitrator
  *  @dev This is a centralized arbitrator deciding alone on the result of disputes. No appeals are possible.
  */
@@ -79,7 +81,7 @@ contract CentralizedArbitrator is IArbitrator {
             fee: msg.value,
             ruling: 0,
             status: DisputeStatus.Waiting
-            })) - 1; // Create the dispute and return its number.
+        })) - 1; // Create the dispute and return its number.
         emit DisputeCreation(disputeID, IArbitrable(msg.sender));
     }
 

@@ -11,6 +11,8 @@ pragma solidity ^0.5.11;
 
 import "./CentralizedArbitrator.sol";
 
+/* solhint-disable max-line-length */
+
 /**
  *  @title AppealableArbitrator
  *  @dev A centralized arbitrator that can be appealed.
