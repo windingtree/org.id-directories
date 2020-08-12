@@ -15,9 +15,7 @@ import { IArbitrable, IArbitrator } from "@kleros/erc-792/contracts/IArbitrator.
 import "@kleros/erc-792/contracts/erc-1497/IEvidence.sol";
 import "@kleros/ethereum-libraries/contracts/CappedMath.sol";
 
-/* solium-disable max-len */
-/* solium-disable security/no-block-members */
-/* solium-disable security/no-send */ // It is the user responsibility to accept ETH.
+/* solhint-disable max-line-length */
 
 /**
  *  @title ArbitrableDirectory
@@ -724,7 +722,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     function getOrganizationsCount(uint _cursor, uint _count) public view returns (uint count) {
         for (uint i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
             if (registeredOrganizations[i] != bytes32(0))
-               count++;
+                count++;
         }
     }
 
