@@ -39,7 +39,8 @@ If the organization doesn't get challenged for the duration of `executionTimeout
 
 The function requires ETH deposit which value is defined by `challengeBaseDeposit` storage parameter and the cost of the arbitration.
 Accepting the challenge creates a dispute in arbitrator contract. If the challenge is not accepted for the duration of `responseTimeout` then the organization can be removed from the directory with `executeTimeout` function. If the organization wasn't in the directory and only had a registration request, then its request gets declined.
-The winner of the dispute gets the ETH deposit of the losing party (minus arbitration fees), and the challenger also gets the Lif deposit of the requester. When arbitrator refuses to arbitrate the requester and challenger get their deposits back (minus an equal share of arbitration fees spent on dispute creation) and the organization's state is kept as it was before the dispute, e.g. if it was registered, it stays registered and if it was not registered yet, then it will not be added.
+The winner of the dispute gets the ETH deposit of the losing party (minus arbitration fees), and the challenger also gets the Lif deposit of the requester.
+When arbitrator refuses to arbitrate both parties get their arbitration fees back (minus an equal share of arbitration fees spent on dispute creation). In this case the organization's state is kept as it was before the dispute, e.g. if it was registered, it stays registered and if it was not registered yet, then it will not be added.
 
 ## Appeal mechanism
 
@@ -56,7 +57,7 @@ If a side does not pay its fees, it is assumed to have lost the dispute. The sid
 
 The owner of the organization has an option to withdraw deposited Lif tokens. In order to avoid malicious ORGs from withdrawing in response to a challenge, a short period of time (`withdrawTimeout`) is required between the time the withdrawal request is made and executed. The organization is removed from the directory in the process.
 
-- function makeWithdrawalRequest(bytes32)1
+- function makeWithdrawalRequest(bytes32)
 - arguments:
 `ID of the organization`
 - events: 
