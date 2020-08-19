@@ -38,9 +38,9 @@ If the organization doesn't get challenged for the duration of `executionTimeout
     - `Evidence`. Not emitted if the evidence URI is not provided.
 
 The function requires ETH deposit which value is defined by `challengeBaseDeposit` storage parameter and the cost of the arbitration.
-Accepting the challenge creates a dispute in arbitrator contract. If the challenge is not accepted for the duration of `responseTimeout` then the organization can be removed from the directory with `executeTimeout` function. If the organization wasn't in the directory and only had a registration request, then its request gets declined.
+Accepting the challenge creates a dispute in arbitrator smart contract. If the challenge is not accepted for the duration of `responseTimeout` then the organization can be removed from the directory with `executeTimeout` function. If the organization wasn't in the directory and only had a registration request, then its request gets declined.
 The winner of the dispute gets the ETH deposit of the losing party (minus arbitration fees), and the challenger also gets the Lif deposit of the requester.
-When arbitrator refuses to arbitrate both parties get their arbitration fees back (minus an equal share of arbitration fees spent on dispute creation). In this case the organization's state is kept as it was before the dispute, e.g. if it was registered, it stays registered and if it was not registered yet, then it will not be added.
+When arbitrator doesn't favor either of the parties the requester and challenger get their arbitration fees back (minus an equal share of arbitration fees spent on dispute creation). In this case the organization's state is kept as it was before the dispute, e.g. if it was registered, it stays registered and if it was not registered yet, then it will not be added.
 
 ## Appeal mechanism
 
