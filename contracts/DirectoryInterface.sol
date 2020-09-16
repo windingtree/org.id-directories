@@ -1,4 +1,5 @@
-pragma solidity >=0.5.16;
+// SPDX-License-Identifier: GPL-3.0-only;
+pragma solidity 0.5.17;
 
 /**
  * @title DirectoryInterface
@@ -13,11 +14,6 @@ contract DirectoryInterface {
      * @param _segment The new segment name
      */
     function setSegment(string calldata _segment) external;
-
-    /**
-     * @dev Returns the segment name
-     */
-    function getSegment() external view returns (string memory);
 
     /**
      * @dev Adds the organization to the registry
@@ -40,8 +36,8 @@ contract DirectoryInterface {
          "organizationsList": "Array of organization Ids"
      }
      */
-    function getOrganizations() 
-        external 
-        view 
+    function getOrganizations()
+        external
+        view
         returns (bytes32[] memory organizationsList);
 }

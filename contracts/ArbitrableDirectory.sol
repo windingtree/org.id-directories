@@ -1,16 +1,11 @@
-/**
- *  @authors: [@unknownunknown1]
- *  @reviewers: [@remedcu, @ferittuncer, @mtsalenc, @clesaege]
- *  @auditors: []
- *  @bounties: []
- *  @deployments: []
- */
-
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: GPL-3.0-only;
+pragma solidity 0.5.17;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@windingtree/org.id/contracts/OrgIdInterface.sol";
+import "@openzeppelin/contracts/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@windingtree/org.id/contracts/OrgIdInterface.sol";
+import "./ArbitrableDirectoryInterface.sol";
 import { IArbitrable, IArbitrator } from "@kleros/erc-792/contracts/IArbitrator.sol";
 import "@kleros/erc-792/contracts/erc-1497/IEvidence.sol";
 import "@kleros/ethereum-libraries/contracts/CappedMath.sol";
@@ -24,7 +19,7 @@ import "@kleros/ethereum-libraries/contracts/CappedMath.sol";
  *  NOTE: This contract trusts that the Arbitrator is honest and will not reenter or modify its costs during a call.
  *  The arbitrator must support appeal period.
  */
-contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
+contract ArbitrableDirectory is ArbitrableDirectoryInterface, IArbitrable, IEvidence, ERC165, Initializable {
 
     using CappedMath for uint;
 
@@ -91,7 +86,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     IArbitrator public arbitrator; // The arbitrator contract.
     bytes public arbitratorExtraData; // Extra data for the arbitrator contract.
 
-    uint RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
+    uint public RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
 
     uint public requesterDeposit; // The amount of Lif tokens in base units a requester must deposit in order to open a request to add the organization.
     uint public challengeBaseDeposit; // The base deposit to challenge the organization. Also the base deposit to accept the challenge. In wei.
@@ -181,6 +176,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         uint _withdrawTimeout,
         uint[3] memory _stakeMultipliers
     ) public initializer {
+        setInterfaces();
         emit MetaEvidence(metaEvidenceUpdates, _metaEvidence);
         governor = _governor;
         segment = _segment;
@@ -294,7 +290,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
     function requestToAdd(bytes32 _organization) external {
         Organization storage organization = organizationData[_organization];
         require(organization.status == Status.Absent, "Directory: The organization must be either registered or registering.");
-        
+
         // Get the organization info from the ORG.ID registry.
         (bool exists,,,,,,, address orgOwner, address director, bool isActive, bool isDirectorshipAccepted) = orgId.getOrganization(_organization);
         require(exists, "Directory: Organization not found.");
@@ -402,7 +398,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
             challenge.resolved = true;
             uint stake = organization.lifStake;
             organization.lifStake = 0;
-            require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
+
             if (organizationsIndex[_organization] != 0) {
                 uint index = organizationsIndex[_organization];
                 bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
@@ -412,6 +408,8 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
                 organizationsIndex[_organization] = 0;
                 emit OrganizationRemoved(_organization);
             }
+
+            require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
         }
     }
 
@@ -551,7 +549,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
      *  @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Refused to arbitrate".
      */
     function rule(uint _disputeID, uint _ruling) public {
-        require(_ruling <= RULING_OPTIONS, "Directory: Invalid ruling option.");       
+        require(_ruling <= RULING_OPTIONS, "Directory: Invalid ruling option.");
         Party resultRuling = Party(_ruling);
         bytes32 organizationID = arbitratorDisputeIDToOrg[msg.sender][_disputeID];
         Organization storage organization = organizationData[organizationID];
@@ -627,9 +625,32 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
         _round.feeRewards += contribution;
 
         // Reimburse leftover ETH.
-        _contributor.send(remainingETH); // Deliberate use of send in order to not block the contract in case of reverting fallback.
+        require(_contributor.send(remainingETH), "Directory: Unable to contribute"); // Deliberate use of send in order to not block the contract in case of reverting fallback.
 
         return contribution;
+    }
+
+    /**
+     * @dev Set the list of contract interfaces supported
+     */
+    function setInterfaces() internal {
+        ArbitrableDirectoryInterface dir;
+        bytes4[2] memory interfaceIds = [
+            // ERC165 interface: 0x01ffc9a7
+            bytes4(0x01ffc9a7),
+
+            // arbitrable directory interface: 0x8778c88a
+            dir.setSegment.selector ^
+            dir.requestToAdd.selector ^
+            dir.challengeOrganization.selector ^
+            dir.acceptChallenge.selector ^
+            dir.executeTimeout.selector ^
+            dir.submitEvidence.selector ^
+            dir.getOrganizations.selector
+        ];
+        for (uint256 i = 0; i < interfaceIds.length; i++) {
+            _registerInterface(interfaceIds[i]);
+        }
     }
 
     /** @dev Execute the ruling of a dispute.
@@ -664,7 +685,6 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
             organization.status = Status.Absent;
             organization.withdrawalRequestTime = 0;
             organization.lifStake = 0;
-            require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
             if (organizationsIndex[organization.ID] != 0) {
                 uint index = organizationsIndex[organization.ID];
                 bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
@@ -674,6 +694,7 @@ contract ArbitrableDirectory is Initializable, IArbitrable, IEvidence {
                 organizationsIndex[organization.ID] = 0;
                 emit OrganizationRemoved(organization.ID);
             }
+            require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
         // 0 ruling. Revert the organization to its default state.
         } else {
             if (organizationsIndex[organization.ID] == 0) {

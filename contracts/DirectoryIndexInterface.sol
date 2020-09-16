@@ -1,4 +1,5 @@
-pragma solidity >=0.5.16;
+// SPDX-License-Identifier: GPL-3.0-only;
+pragma solidity 0.5.17;
 
 contract DirectoryIndexInterface {
 
@@ -20,8 +21,8 @@ contract DirectoryIndexInterface {
          "segmentsList": "Array of organization Ids"
      }
      */
-    function getSegments() 
-        external 
-        view 
+    function getSegments()
+        external
+        view
         returns (address[] memory segmentsList);
 }

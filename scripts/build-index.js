@@ -7,7 +7,8 @@ const bundle = [
     'Directory.json',
     'DirectoryIndex.json',
     'DirectoryInterface.json',
-    'DirectoryIndexInterface.json'
+    'DirectoryIndexInterface.json',
+    'ArbitrableDirectory.json'
 ];
 const files = fs.readdirSync(CONTRACTS_DIR);
 const bundleRegex = new RegExp(bundle.join('|'));

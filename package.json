@@ -1,20 +1,20 @@
 {
   "name": "@windingtree/org.id-directories",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "description": "Directory and DirectoryIndex smart contracts of the Winding Tree protocol",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "management/test.sh",
-    "lint": "npx eslint test management && npx solhint 'contracts/**/*.sol'",
-    "lint:fix": "npx eslint test management --fix && npx solhint 'contracts/**/*.sol'",
+    "test": "scripts/test.sh",
+    "lint": "npx eslint test scripts && npx solhint 'contracts/**/*.sol'",
+    "lint:fix": "npx eslint test scripts --fix && npx solhint 'contracts/**/*.sol'",
     "dev-net": "npx ganache-cli --gasLimit 0xfffffffffff -m --port 8545 --deterministic",
     "coverage": "SOLIDITY_COVERAGE=true npm run test",
-    "soldoc": "management/soldoc.sh",
-    "flattener": "management/flattener.sh",
+    "soldoc": "scripts/soldoc.sh",
+    "flattener": "scripts/flattener.sh",
     "clean": "rimraf build",
-    "build-index": "node management/build-index.js > index.js",
+    "build-index": "node scripts/build-index.js > index.js",
     "set-oz-version": "npx openzeppelin bump `node -e \"const p = require('./package.json');console.log(p.version);\"`",
     "version": "npm run set-oz-version && git add .openzeppelin/project.json && npm run build-index && git add index.js",
     "prebuild": "npm run clean",
@@ -39,27 +39,27 @@
   "license": "GPL-3.0-only",
   "dependencies": {
     "@openzeppelin/contracts": "2.5.0",
-    "@windingtree/org.id": "^1.1.0"
+    "@windingtree/org.id": "1.1.1"
   },
   "devDependencies": {
     "@kleros/erc-792": "^3.0.0",
     "@kleros/ethereum-libraries": "^1.0.0",
     "@openzeppelin/cli": "2.7.1",
-    "@truffle/contract": "4.1.11",
-    "@truffle/hdwallet-provider": "1.0.32",
+    "@truffle/contract": "4.2.22",
+    "@truffle/hdwallet-provider": "1.0.44",
     "chai": "4.2.0",
-    "coveralls": "3.0.9",
-    "eslint": "6.8.0",
-    "ganache-cli": "6.9.1",
-    "husky": "4.2.3",
-    "openzeppelin-test-helpers": "^0.5.1",
+    "coveralls": "3.1.0",
+    "eslint": "7.9.0",
+    "ganache-cli": "6.10.2",
+    "husky": "4.3.0",
+    "openzeppelin-test-helpers": "0.5.1",
     "rimraf": "3.0.2",
-    "solc": "0.6.3",
-    "solhint": "2.3.0",
-    "solidity-coverage": "0.7.2",
+    "solc": "0.7.1",
+    "solhint": "3.2.0",
+    "solidity-coverage": "0.7.10",
     "solmd": "0.4.0",
-    "truffle": "5.1.15",
-    "truffle-flattener": "1.4.2"
+    "truffle": "5.1.44",
+    "truffle-flattener": "1.5.0"
   },
   "engines": {
     "node": ">=10"

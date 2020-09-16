@@ -1,4 +1,5 @@
-pragma solidity >=0.5.16;
+// SPDX-License-Identifier: GPL-3.0-only;
+pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
@@ -47,7 +48,7 @@ contract DirectoryIndex is DirectoryIndexInterface, Ownable, Initializable {
      * @param __owner The address of the contract owner
      */
     function initialize(address payable __owner) external initializer {
-        require(__owner != address(0), 'DirectoryIndex: Invalid owner address');
+        require(__owner != address(0), "DirectoryIndex: Invalid owner address");
         _transferOwnership(__owner);
         segmentsIndex[address(0)] = segments.length;
         segments.push(address(0));
@@ -60,10 +61,10 @@ contract DirectoryIndex is DirectoryIndexInterface, Ownable, Initializable {
     function addSegment(address segment) external onlyOwner {
         require(
             segment != address(0),
-            'DirectoryIndex: Invalid segment address'
+            "DirectoryIndex: Invalid segment address"
         );
         require(
-            ERC165Checker._supportsInterface(segment, 0xcc915ab7),
+            ERC165Checker._supportsInterface(segment, 0xee92238b),
             "DirectoryIndex: Segment has to support directory interface"
         );
 
@@ -79,7 +80,7 @@ contract DirectoryIndex is DirectoryIndexInterface, Ownable, Initializable {
      */
     function removeSegment(address segment)
         external
-        onlyOwner 
+        onlyOwner
         registeredSegment(segment)
     {
         uint256 index = segmentsIndex[segment];
@@ -95,10 +96,10 @@ contract DirectoryIndex is DirectoryIndexInterface, Ownable, Initializable {
          "segmentsList": "Array of organization Ids"
      }
      */
-    function getSegments() 
-        external 
-        view 
-        returns (address[] memory segmentsList) 
+    function getSegments()
+        external
+        view
+        returns (address[] memory segmentsList)
     {
         segmentsList = new address[](_getSegmentsCount());
         uint256 index;
@@ -120,11 +121,11 @@ contract DirectoryIndex is DirectoryIndexInterface, Ownable, Initializable {
      }
      */
     function _getSegmentsCount() internal view returns (uint256 count) {
-        
+
         for (uint256 i = 0; i < segments.length; i++) {
 
             if (segments[i] != address(0)) {
-                
+
                 count = count.add(1);
             }
         }

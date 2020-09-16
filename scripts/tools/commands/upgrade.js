@@ -40,7 +40,7 @@ module.exports = async (options) => {
     const network = await web3.eth.net.getNetworkType();
     let initArgsParsed = [];
     let deploymentConfig;
-    
+
     const configFilePath = path.join(
         __dirname,
         `../../../.openzeppelin/${network}-${name}.json`
@@ -99,17 +99,19 @@ module.exports = async (options) => {
     ];
     const txParams = Object.assign({}, Contracts.getDefaultTxParams(), {
         from,
-        gas: truffleConfig.gas || 8000000,
-        gasPrice: truffleJs.gasPrice || 10000000000
+        gas: truffleConfig.gas,
+        gasPrice: truffleConfig.gasPrice
     });
-        
+
+    // console.log('@@@', txParams, await web3.eth.getBlock('latest'));
+
     // Setup upgradeability project
     const project = await ProxyAdminProject.fetch(
         name,
         txParams,
         deploymentConfig.proxyAdmin
     );
-    
+
     // Upgrading of the contract
     const proxy = await project.upgradeProxy(
         deploymentConfig.contract.proxy,
@@ -139,9 +141,9 @@ module.exports = async (options) => {
             packageName: name,
             contractName: name
         });
-    
+
     deploymentConfig.blockNumber = await web3.eth.getBlockNumber();
-    
+
     fs.unlinkSync(configFilePath);
     fs.writeFileSync(
         configFilePath,

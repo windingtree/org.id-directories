@@ -1,4 +1,5 @@
-pragma solidity >=0.5.16;
+// SPDX-License-Identifier: GPL-3.0-only;
+pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/introspection/ERC165.sol";
 import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
@@ -10,7 +11,7 @@ import "./DirectoryInterface.sol";
 
 /**
  * @title Directory
- * @dev A Directory that can handle a list of organizations sharing a 
+ * @dev A Directory that can handle a list of organizations sharing a
  * common segment such as hotels, airlines etc.
  */
 contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
@@ -19,15 +20,15 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
 
     // An instance of the ORG.ID smart contract
     OrgIdInterface public orgId;
-    
+
     // Segment name, i. e. hotel, airline
-    string internal segment;
+    string public segment;
 
     // Array of addresses of `Organization` contracts
-    bytes32[] organizations;
+    bytes32[] public organizations;
 
     // Mapping of organizations position in the general organization index
-    mapping(bytes32 => uint256) organizationsIndex;
+    mapping(bytes32 => uint256) internal organizationsIndex;
 
     /**
      * @dev Event triggered every time segment value is changed
@@ -78,10 +79,10 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             "Directory: Invalid ORG.ID address"
         );
         require(
-            ERC165Checker._supportsInterface(_orgId, 0x36b78f0f),
+            ERC165Checker._supportsInterface(_orgId, 0x0f4893ef),
             "Directory: ORG.ID instance has to support ORG.ID interface"
         );
-        
+
         setInterfaces();
         _transferOwnership(__owner);
         orgId = OrgIdInterface(_orgId);
@@ -102,13 +103,6 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
         );
         emit SegmentChanged(segment, _segment);
         segment = _segment;
-    }
-
-    /**
-     * @dev Returns the segment name
-     */
-    function getSegment() external view returns (string memory) {
-        return segment;
     }
 
     /**
@@ -136,10 +130,10 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
          "organizationsList": "Array of organization Ids"
      }
      */
-    function getOrganizations() 
-        external 
-        view 
-        returns (bytes32[] memory organizationsList) 
+    function getOrganizations()
+        external
+        view
+        returns (bytes32[] memory organizationsList)
     {
         organizationsList = new bytes32[](_getOrganizationsCount());
         uint256 index;
@@ -157,7 +151,7 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
     /**
      * @dev Set the list of contract interfaces supported
      */
-    function setInterfaces() public {
+    function setInterfaces() internal {
         Ownable own;
         DirectoryInterface dir;
         bytes4[3] memory interfaceIds = [
@@ -165,13 +159,12 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             bytes4(0x01ffc9a7),
 
             // ownable interface: 0x7f5828d0
-            own.owner.selector ^ 
-            own.transferOwnership.selector, 
+            own.owner.selector ^
+            own.transferOwnership.selector,
 
-            // directory interface: 0xcc915ab7
-            dir.setSegment.selector ^ 
-            dir.getSegment.selector ^
-            dir.add.selector ^ 
+            // directory interface: 0xee92238b
+            dir.setSegment.selector ^
+            dir.add.selector ^
             dir.remove.selector ^
             dir.getOrganizations.selector
         ];
@@ -184,14 +177,14 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
      * @dev Add new organization in the directory.
      * Only organizations that conform to OrganizationInterface can be added.
      * ERC165 method of interface checking is used.
-     * 
+     *
      * Emits `OrganizationAdded` on success.
      * @param  organization Organization"s Id
      * @return {
          "organization": "Address of the organization"
      }
      */
-    function _addOrganization(bytes32 organization) 
+    function _addOrganization(bytes32 organization)
         internal
         returns (bytes32)
     {
@@ -223,7 +216,7 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             exists,
             "Directory: Organization not found"
         );
-        
+
         require(
             orgOwner == msg.sender || director == msg.sender,
             "Directory: Only organization owner or director can add the organization"
@@ -232,14 +225,14 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             isActive,
             "Directory: Only enabled organizations can be added"
         );
-        
+
         if (director != address(0)) {
             require(
                 isDirectorshipAccepted,
                 "Directory: Only subsidiaries with confirmed director ownership can be added"
             );
         }
-        
+
         organizationsIndex[organization] = organizations.length;
         organizations.push(organization);
 
@@ -257,12 +250,12 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
      * Emits `OrganizationRemoved` on success.
      * @param  organization  Organization"s address
      */
-    function _removeOrganization(bytes32 organization) 
-        internal 
-        registeredOrganization(organization) 
+    function _removeOrganization(bytes32 organization)
+        internal
+        registeredOrganization(organization)
     {
         // Get the organization info from the ORG.ID registry
-        ( 
+        (
             bool exists,
             ,
             ,
@@ -288,7 +281,7 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
         uint256 index = organizationsIndex[organization];
         delete organizations[index];
         delete organizationsIndex[organization];
-        
+
         emit OrganizationRemoved(organization);
     }
 
@@ -299,11 +292,11 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
      }
      */
     function _getOrganizationsCount() internal view returns (uint256 count) {
-        
+
         for (uint256 i = 0; i < organizations.length; i++) {
 
             if (organizations[i] != bytes32(0)) {
-                
+
                 count = count.add(1);
             }
         }

@@ -1,6 +1,5 @@
 const { TestHelper } = require('@openzeppelin/cli');
 const { Contracts } = require('@openzeppelin/upgrades');
-const { setupLifToken } = require('./lif');
 
 /**
  * Generates an id on the base of string and solt
@@ -10,13 +9,15 @@ const { setupLifToken } = require('./lif');
 const generateId = (string, solt = Math.random().toString()) => web3.utils.keccak256(`${string}${solt}`);
 module.exports.generateId = generateId;
 
+const generateSalt = () => web3.utils.keccak256(Math.random().toString());
+module.exports.generateSalt = generateSalt;
+
 /**
  * Create new ORG.ID instance
  * @param {string} owner Org.Id owner address
  * @returns {Promise<{Object}>} OrgId contact instancr
  */
 module.exports.orgIdSetup = async (owner) => {
-    const lifToken = await setupLifToken(owner);
     const OrgId = Contracts.getFromNodeModules('@windingtree/org.id', 'OrgId');
     const project = await TestHelper({
         from: owner
@@ -27,10 +28,7 @@ module.exports.orgIdSetup = async (owner) => {
     );
     return await project.createProxy(OrgId, {
         initMethod: 'initialize',
-        initArgs: [
-            owner,
-            lifToken.address
-        ]
+        initArgs: []
     });
 };
 
@@ -38,7 +36,7 @@ module.exports.orgIdSetup = async (owner) => {
  * Create an organizations
  * @param {Object} orgId OrgId contract instance
  * @param {string} from The address of the organization owner
- * @param {string} id Organization Id
+ * @param {string} salt Organization Id salt
  * @param {string} uri Url to orgIdJson
  * @param {string} hash Hash of the orgIdJson
  * @returns {Promise<{string}>} Organization Id
@@ -46,18 +44,20 @@ module.exports.orgIdSetup = async (owner) => {
 module.exports.createOrganization = async (
     orgId,
     from,
-    id = generateId(`${from}${Math.random().toString()}`),
+    salt = generateSalt(),
     uri = 'path/to/orgIdJson',
     hash = web3.utils.soliditySha3(uri)
 ) => {
-    await orgId
-        .methods['createOrganization(bytes32,string,bytes32)'](
-            id,
+    const result = await orgId
+        .methods['createOrganization(bytes32,bytes32,string,string,string)'](
+            salt,
+            hash,
             uri,
-            hash
+            '',
+            ''
         )
         .send({ from });
-    return id;
+    return result.events.OrganizationCreated.returnValues.orgId;
 };
 
 /**
@@ -67,13 +67,13 @@ module.exports.createOrganization = async (
  * @param {string} id Organization Id
  * @returns {Promise<{bool}>} Organization state
  */
-module.exports.toggleOrganization = async (
+module.exports.toggleActiveState = async (
     orgId,
     from,
     id
 ) => {
     await orgId
-        .methods['toggleOrganization(bytes32)'](id)
+        .methods['toggleActiveState(bytes32)'](id)
         .send({ from });
     const organization = await orgId
         .methods['getOrganization(bytes32)'](id)
@@ -82,32 +82,34 @@ module.exports.toggleOrganization = async (
 };
 
 /**
- * Create subsidiary organization
+ * Create organizational unit
  * @param {Object} orgId OrgId contract instance
  * @param {string} from The address of the organization owner
- * @param {string} id Organization Id
+ * @param {string} salt Organization Id salt
  * @param {string} director Organization director address
  * @param {string} uri Url to orgIdJson
  * @param {string} hash Hash of the orgIdJson
  * @returns {Promise<{bool}>} Subsidiary Id
  */
-module.exports.createSubsidiary = async (
+module.exports.createUnit = async (
     orgId,
     from,
-    id,
+    salt,
     director,
-    subOrgId = generateId(`${from}${Math.random().toString()}`),
+    parentOrgId = generateId(`${from}${Math.random().toString()}`),
     uri = 'path/to/orgIdJson',
     hash = web3.utils.soliditySha3(uri)
 ) => {
-    await orgId
-        .methods['createSubsidiary(bytes32,bytes32,address,string,bytes32)'](
-            id,
-            subOrgId,
+    const result = await orgId
+        .methods['createUnit(bytes32,bytes32,address,bytes32,string,string,string)'](
+            salt,
+            parentOrgId,
             director,
+            hash,
             uri,
-            hash
+            '',
+            ''
         )
         .send({ from });
-    return subOrgId;
+    return result.events.UnitCreated.returnValues.unitOrgId;
 };

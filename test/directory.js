@@ -3,9 +3,10 @@ const { Contracts, ZWeb3 } = require('@openzeppelin/upgrades');
 const { assertRevert, assertEvent } = require('./helpers/assertions');
 const {
     createOrganization,
-    createSubsidiary,
-    toggleOrganization,
-    generateId
+    createUnit,
+    toggleActiveState,
+    generateId,
+    generateSalt
 } = require('./helpers/orgid');
 const { createDirectory } = require('./helpers/directory');
 const {
@@ -34,7 +35,7 @@ const FakeOrgId = Contracts.getFromLocal('FakeOrgId');
 require('chai').should();
 
 contract('Directory', accounts => {
-    
+
     const orgIdOwner = accounts[1];
     const dirOwner = accounts[2];
     const organizationOwner = accounts[3];
@@ -45,7 +46,7 @@ contract('Directory', accounts => {
     let project;
     let dir;
     let orgId;
-    
+
     beforeEach(async () => {
         const setup = await createDirectory(orgIdOwner, dirOwner, segmentName);
         orgId = setup.orgId;
@@ -146,7 +147,7 @@ contract('Directory', accounts => {
                     'Ownable: caller is not the owner'
                 );
             });
-    
+
             it('should fail if new owner has zero address', async () => {
                 await assertRevert(
                     dir
@@ -207,7 +208,7 @@ contract('Directory', accounts => {
         it('should support directory interface', async () => {
             (
                 await dir
-                    .methods['supportsInterface(bytes4)']('0xcc915ab7')
+                    .methods['supportsInterface(bytes4)']('0xee92238b')
                     .call()
             ).should.be.true;
         });
@@ -251,16 +252,16 @@ contract('Directory', accounts => {
                     ]
                 ]);
                 (
-                    await dir.methods['getSegment()']().call()
+                    await dir.methods['segment()']().call()
                 ).should.equal(newSegment);
             });
         });
 
         describe('#getSegment()', () => {
-            
+
             it('should return a segment name', async () => {
                 (
-                    await dir.methods['getSegment()']().call()
+                    await dir.methods['segment()']().call()
                 ).should.equal(segmentName);
             });
         });
@@ -329,7 +330,7 @@ contract('Directory', accounts => {
             });
 
             it('should fail if provided disabled organization', async () => {
-                await toggleOrganization(
+                await toggleActiveState(
                     orgId,
                     organizationOwner,
                     organizations[0]
@@ -343,11 +344,12 @@ contract('Directory', accounts => {
             });
 
             it('should fail if provided subsidiary with non confirmed director ownership', async () => {
-                const subId = await createSubsidiary(
+                const subId = await createUnit(
                     orgId,
                     organizationOwner,
-                    organizations[0],
-                    subsidiaryDirector
+                    generateSalt(),
+                    subsidiaryDirector,
+                    organizations[0]
                 );
                 await assertRevert(
                     dir
@@ -390,7 +392,7 @@ contract('Directory', accounts => {
                     .methods['add(bytes32)'](organization)
                     .send({ from: organizationOwner });
             });
-            
+
             it('should fail if non registered organization has been provided', async () => {
                 await assertRevert(
                     dir
