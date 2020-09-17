@@ -63,8 +63,9 @@ contract DirectoryIndex is DirectoryIndexInterface, Ownable, Initializable {
             segment != address(0),
             "DirectoryIndex: Invalid segment address"
         );
+        // Segment must support Directory interface
         require(
-            ERC165Checker._supportsInterface(segment, 0xee92238b),
+            ERC165Checker._supportsInterface(segment, 0xae54f8e1),
             "DirectoryIndex: Segment has to support directory interface"
         );
 

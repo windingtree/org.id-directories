@@ -208,7 +208,7 @@ contract('Directory', accounts => {
         it('should support directory interface', async () => {
             (
                 await dir
-                    .methods['supportsInterface(bytes4)']('0xee92238b')
+                    .methods['supportsInterface(bytes4)']('0xae54f8e1')
                     .call()
             ).should.be.true;
         });
@@ -252,7 +252,7 @@ contract('Directory', accounts => {
                     ]
                 ]);
                 (
-                    await dir.methods['segment()']().call()
+                    await dir.methods['getSegment()']().call()
                 ).should.equal(newSegment);
             });
         });
@@ -261,7 +261,7 @@ contract('Directory', accounts => {
 
             it('should return a segment name', async () => {
                 (
-                    await dir.methods['segment()']().call()
+                    await dir.methods['getSegment()']().call()
                 ).should.equal(segmentName);
             });
         });

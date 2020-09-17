@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only;
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/introspection/ERC165.sol";
 import "@openzeppelin/contracts/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@windingtree/org.id/contracts/ERC165/ERC165.sol";
 import "@windingtree/org.id/contracts/OrgIdInterface.sol";
 import "./DirectoryInterface.sol";
 
@@ -22,10 +22,10 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
     OrgIdInterface public orgId;
 
     // Segment name, i. e. hotel, airline
-    string public segment;
+    string internal segment;
 
     // Array of addresses of `Organization` contracts
-    bytes32[] public organizations;
+    bytes32[] public registeredOrganizations;
 
     // Mapping of organizations position in the general organization index
     mapping(bytes32 => uint256) internal organizationsIndex;
@@ -87,8 +87,8 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
         _transferOwnership(__owner);
         orgId = OrgIdInterface(_orgId);
         segment = _segment;
-        organizationsIndex[bytes32(0)] = organizations.length;
-        organizations.push(bytes32(0));
+        organizationsIndex[bytes32(0)] = registeredOrganizations.length;
+        registeredOrganizations.push(bytes32(0));
     }
 
     /**
@@ -125,26 +125,43 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
     }
 
     /**
-     * @dev Returns registered organizations array
-     * @return {
-         "organizationsList": "Array of organization Ids"
-     }
+     * @dev Get all the registered organizations.
+     * @param _cursor Index of the organization from which to start querying.
+     * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
+     * @return organizationsList Array of organization IDs.
      */
-    function getOrganizations()
+    function getOrganizations(uint256 _cursor, uint256 _count)
         external
         view
         returns (bytes32[] memory organizationsList)
     {
-        organizationsList = new bytes32[](_getOrganizationsCount());
+        organizationsList = new bytes32[](getOrganizationsCount(_cursor, _count));
         uint256 index;
-
-        for (uint256 i = 0; i < organizations.length; i++) {
-
-            if (organizations[i] != bytes32(0)) {
-
-                organizationsList[index] = organizations[i];
-                index = index.add(1);
+        for (uint256 i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
+            if (registeredOrganizations[i] != bytes32(0)) {
+                organizationsList[index] = registeredOrganizations[i];
+                index++;
             }
+        }
+    }
+
+    /**
+     * @dev Returns a segment name.
+     */
+    function getSegment() public view returns (string memory) {
+        return segment;
+    }
+
+    /**
+     * @dev Return registeredOrganizations array length.
+     * @param _cursor Index of the organization from which to start counting.
+     * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
+     * @return count Length of the organizations array.
+     */
+    function getOrganizationsCount(uint256 _cursor, uint256 _count) public view returns (uint256 count) {
+        for (uint256 i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
+            if (registeredOrganizations[i] != bytes32(0))
+                count++;
         }
     }
 
@@ -162,11 +179,10 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             own.owner.selector ^
             own.transferOwnership.selector,
 
-            // directory interface: 0xee92238b
-            dir.setSegment.selector ^
-            dir.add.selector ^
-            dir.remove.selector ^
-            dir.getOrganizations.selector
+            // directory interface: 0xae54f8e1
+            dir.getSegment.selector ^
+            dir.getOrganizations.selector ^
+            dir.getOrganizationsCount.selector
         ];
         for (uint256 i = 0; i < interfaceIds.length; i++) {
             _registerInterface(interfaceIds[i]);
@@ -233,8 +249,8 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
             );
         }
 
-        organizationsIndex[organization] = organizations.length;
-        organizations.push(organization);
+        organizationsIndex[organization] = registeredOrganizations.length;
+        registeredOrganizations.push(organization);
 
         emit OrganizationAdded(
             organization,
@@ -279,26 +295,9 @@ contract Directory is DirectoryInterface, Ownable, ERC165, Initializable {
         );
 
         uint256 index = organizationsIndex[organization];
-        delete organizations[index];
+        delete registeredOrganizations[index];
         delete organizationsIndex[organization];
 
         emit OrganizationRemoved(organization);
-    }
-
-    /**
-     * @dev Returns organizations array length
-     * @return {
-         "count": "Length of the organizations array"
-     }
-     */
-    function _getOrganizationsCount() internal view returns (uint256 count) {
-
-        for (uint256 i = 0; i < organizations.length; i++) {
-
-            if (organizations[i] != bytes32(0)) {
-
-                count = count.add(1);
-            }
-        }
     }
 }

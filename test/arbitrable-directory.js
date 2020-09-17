@@ -98,7 +98,7 @@ contract('ArbitrableDirectory', function (accounts) {
 
     it('Should set the correct values in initializer', async () => {
         assert.equal(await aD.governor(), governor);
-        assert.equal(await aD.segment(), segment);
+        assert.equal(await aD.getSegment(), segment);
         assert.equal(await aD.orgId(), orgId.address);
         assert.equal(await aD.lif(), lif.address);
         assert.equal(await aD.arbitrator(), arbitrator.address);
@@ -1293,7 +1293,7 @@ contract('ArbitrableDirectory', function (accounts) {
             'The caller must be the governor.'
         );
         await aD.setSegment('Segment2', { from: governor });
-        assert.equal(await aD.segment(), 'Segment2', 'Incorrect segment value');
+        assert.equal(await aD.getSegment(), 'Segment2', 'Incorrect segment value');
 
         await expectRevert(
             aD.changeRequesterDeposit(555, { from: other }),

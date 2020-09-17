@@ -6,11 +6,12 @@
     "DirectoryUpgradeability": "DirectoryUpgradeability",
     "DirectoryIndexUpgradeability": "DirectoryIndexUpgradeability",
     "FakeOrgId": "FakeOrgId",
-    "FakeDirectory": "FakeDirectory"
+    "FakeDirectory": "FakeDirectory",
+    "ArbitrableDirectory": "ArbitrableDirectory"
   },
   "dependencies": {},
   "name": "org.id-directories",
-  "version": "0.10.0",
+  "version": "0.12.0",
   "publish": true,
   "compiler": {
     "manager": "openzeppelin",
@@ -20,7 +21,7 @@
         "runs": "200"
       }
     },
-    "solcVersion": "0.5.16",
+    "solcVersion": "0.5.17",
     "artifactsDir": "build/contracts",
     "contractsDir": "contracts",
     "typechain": {
