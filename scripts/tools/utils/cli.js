@@ -28,7 +28,7 @@ module.exports.parseArgv = (argv, skip = 0) => {
             }, {})
     )
         .map(p => `${p[0]}=${p[1]}`);
-    
+
     argv.forEach((arg) => {
 
         // Splitting and cleananup
@@ -54,10 +54,11 @@ module.exports.parseParams = params => {
         return [];
     }
 
-    return params.split(',').map(p => {
-        const template = /^number:/g;
-        return p.match(template) ? parseInt(p.replace(template, '')) : p;
-    });
+    return (Array.isArray(params) ? params : params.split(','))
+        .map(p => {
+            const template = /^number:/g;
+            return String(p).match(template) ? parseInt(p.replace(template, '')) : p;
+        });
 };
 
 /**

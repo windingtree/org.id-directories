@@ -1,4 +1,4 @@
-#  ArbitrableDirectory 
+#  ArbitrableDirectory
 ## Overview
 
 ArbitrableDirectory is a type of ORGiD directory but with the support of [Kleros arbitration](https://developer.kleros.io/en/latest/).
@@ -9,7 +9,7 @@ In order to add new organizaion to the directory its owner should make a request
 - function `requestToAdd(bytes32)`
 - arguments:
     - `ID of the organization`
-- events: 
+- events:
     - `OrganizationSubmitted`
 
 The function requires a Lif deposit which value is defined by `requesterDeposit` storage parameter.
@@ -47,7 +47,7 @@ When arbitrator doesn't favor either of the parties the requester and challenger
 Challenger and requester can appeal the dispute ruling by depositing an appeal fee within dispute's `appealPeriod`. Appeal fees can be crowdfunded and the sum of both fees will be distributed proportionally between crowdfunders who contributed to the winning side. If appeal funding is successful the dispute will be arbitrated again.
 
 - function `fundAppeal(bytes32, Party)`
-- arguments: 
+- arguments:
     - `ID of the organization`
     - `Index of the party that gets the appeal contribution`. 1: Requester, 2: Challenger.
 
@@ -60,7 +60,7 @@ The owner of the organization has an option to withdraw deposited Lif tokens. In
 - function makeWithdrawalRequest(bytes32)
 - arguments:
 `ID of the organization`
-- events: 
+- events:
     - `OrganizationRemoved`
 
 The organization can still be challenged until `withdrawTimeout` has expired.

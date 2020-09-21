@@ -45,7 +45,8 @@ module.exports = async (options) => {
         argsParsed = applyArgs(
             parseParams(args),
             {
-                '[OWNER]': from
+                '[OWNER]': from,
+                '[FROM]': from
             }
         );
     }
@@ -63,7 +64,7 @@ module.exports = async (options) => {
         gasPrice: truffleConfig.gasPrice
     });
     const contract = ContractSchema.at(address);
-    
+
     const result = await (await contract.methods[method].apply(contract, argsParsed)).send(txParams);
 
     log('Result', parseCallResult(result));

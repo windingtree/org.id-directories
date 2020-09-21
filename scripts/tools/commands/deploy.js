@@ -22,6 +22,10 @@ module.exports = async (options) => {
         from: {
             type: 'address'
         },
+        tag: {
+            type: 'string',
+            required: false
+        },
         initMethod: {
             type: 'string',
             required: false
@@ -35,6 +39,7 @@ module.exports = async (options) => {
     const {
         name,
         from,
+        tag,
         initMethod,
         initArgs
     } = options;
@@ -42,14 +47,15 @@ module.exports = async (options) => {
     let initArgsParsed = [];
     let deploymentConfig = Object.assign({}, config);
 
+    const postFix = tag ? '-' + tag : '';
     const configFilePath = path.join(
         __dirname,
-        `../../../.openzeppelin/${network}-${name}.json`
+        `../../../.openzeppelin/${network}-${name}${postFix}.json`
     );
 
     if (fs.existsSync(configFilePath)) {
 
-        title('Detected existing deployment', `${network}-${name}.json`);
+        title('Detected existing deployment', `${network}-${name}${postFix}.json`);
         log('Use "cmd=upgrade" for doing upgrade');
         return;
     }
@@ -101,7 +107,8 @@ module.exports = async (options) => {
         },
         !initArgsParsed ? {} : {
             initArgs: applyArgs(initArgsParsed, {
-                '[OWNER]': from
+                '[OWNER]': from,
+                '[FROM]': from
             })
         }
     ));

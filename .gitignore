@@ -33,3 +33,6 @@ zos.dev-*
 !.openzeppelin/ropsten*
 !.openzeppelin/rinkeby*
 !.openzeppelin/main*
+
+# Dev temp folders
+temp

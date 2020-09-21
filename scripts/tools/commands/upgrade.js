@@ -21,6 +21,10 @@ module.exports = async (options) => {
         from: {
             type: 'address'
         },
+        tag: {
+            type: 'string',
+            required: false
+        },
         initMethod: {
             type: 'string',
             required: false
@@ -34,6 +38,7 @@ module.exports = async (options) => {
     const {
         name,
         from,
+        tag,
         initMethod,
         initArgs
     } = options;
@@ -41,16 +46,17 @@ module.exports = async (options) => {
     let initArgsParsed = [];
     let deploymentConfig;
 
+    const postFix = tag ? '-' + tag : '';
     const configFilePath = path.join(
         __dirname,
-        `../../../.openzeppelin/${network}-${name}.json`
+        `../../../.openzeppelin/${network}-${name}${postFix}.json`
     );
 
     if (!fs.existsSync(configFilePath)) {
 
         title(
             'Deployment not found. There should exist the following configuration file',
-            `${network}-${name}.json`
+            `${network}-${name}${postFix}.json`
         );
         log('Use "cmd=deploy" for make new deployment');
         return;
@@ -103,8 +109,6 @@ module.exports = async (options) => {
         gasPrice: truffleConfig.gasPrice
     });
 
-    // console.log('@@@', txParams, await web3.eth.getBlock('latest'));
-
     // Setup upgradeability project
     const project = await ProxyAdminProject.fetch(
         name,
@@ -124,6 +128,7 @@ module.exports = async (options) => {
             !initArgsParsed ? {} : {
                 initArgs: applyArgs(initArgsParsed, {
                     '[OWNER]': from,
+                    '[FROM]': from,
                     '[PROXY_ADMIN]': deploymentConfig.proxyAdmin
                 })
             }

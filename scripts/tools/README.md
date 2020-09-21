@@ -1,17 +1,17 @@
 # WindingTree Contracts Management CLI tools
-This CLI is dedicated to the deployment of the new contracts instances, managing upgrades, sending transactions and calling of the contracts functions.  
+This CLI is dedicated to the deployment of the new contracts instances, managing upgrades, sending transactions and calling of the contracts functions.
 
 > All commands are require proper network configuration in the `truffle.js` file
 
 ## Get Starting
 
-Before the first use of the CLI run this command  
+Before the first use of the CLI run this command
 
 ```bash
 npm link
 ```
 
-## Commands    
+## Commands
   - [version](#version)
   - [makehash](#makehash)
   - [deploy](#deploy)
@@ -26,13 +26,13 @@ Usage: `orgid-tools --network <NETWORK_NAME> cmd=<COMMAND> <PARAMETERS>`
 
 Usage: `cmd=version`
 
-Prints the current package version.  
+Prints the current package version.
 
 ## makehash
 
-Usage: `cmd=makehash <PROPERTIES>`  
+Usage: `cmd=makehash <PROPERTIES>`
 
-Generates a hash of the given json file using keccak method from solidity. This hash should be used as ORG.ID JSON validation parameter.  
+Generates a hash of the given json file using keccak method from solidity. This hash should be used as ORG.ID JSON validation parameter.
 
 Parameters:
 - `file=<PATH_TO_JSON>`
@@ -40,26 +40,29 @@ Parameters:
 
 ## deploy
 
-Usage: `cmd=deploy <PROPERTIES>`  
+Usage: `cmd=deploy <PROPERTIES>`
 
 Manages contracts deployments.
 
 Parameters:
-- `name=<CONTRACT_NAME>`  
-  Contract name to deploy or upgrade  
+- `name=<CONTRACT_NAME>`
+  Contract name to deploy or upgrade
 
-- `from=<SENDER_ACCOUNT_ADDRESS>`  
-  Account address that should be used to signing transactions   
+- `from=<SENDER_ACCOUNT_ADDRESS>`
+  Account address that should be used to signing transactions
 
-- `initMethod=<INITIALIZER_METHOD_NAME>`  
-  Name of the contract initializer method name. Optional. Default value: "initialize"  
+- `tag=<DEPLOYMENT_TAG>`
+  Deployment tag. Allowing to create a special tagged deployment of the contract
+
+- `initMethod=<INITIALIZER_METHOD_NAME>`
+  Name of the contract initializer method name. Optional. Default value: "initialize"
 
 - `initArgs=<INITIALIZER_ARGUMENTS>`
   Initializer arguments separated by comma. Optional.
 
 In the `initArgs` or `upgradeArgs` there are can be used special template such as `[OWNER]` and [PROXY_ADMIN]. These templates will be replaced with values obtained at run time by their values. `OWNER` and `PROXY_ADMIN` are the addresses of contracts instances from the OpenZeppelin upgradeability framework used in this solution.
 
-As result of initial deployment of the contract will created a project confiruration file with following content:  
+As result of initial deployment of the contract will created a project confiruration file with following content:
 
 ```json
 {
@@ -74,25 +77,28 @@ As result of initial deployment of the contract will created a project confirura
   "blockNumber": 18
 }
 ```
-The name of this file is forming by the following template:  
+The name of this file is forming by the following template:
 `<NETWORK_TYPE>-<CONTRACT_NAME>.json`
 
-If this file will be detected on the utility start the whole following process will go by the upgrade workflow.  
+If this file will be detected on the utility start the whole following process will go by the upgrade workflow.
 
 ## upgrade
 
-Usage: `cmd=upgrade <PROPERTIES>`  
+Usage: `cmd=upgrade <PROPERTIES>`
 
 Manages contracts upgrades.
 
 Parameters:
-- `name=<CONTRACT_NAME>`  
-  Contract name to deploy or upgrade  
+- `name=<CONTRACT_NAME>`
+  Contract name to deploy or upgrade
 
-- `from=<SENDER_ACCOUNT_ADDRESS>`  
-  Account address that should be used to signing transactions   
+- `from=<SENDER_ACCOUNT_ADDRESS>`
+  Account address that should be used to signing transactions
 
-- `initMethod=<INITIALIZER_METHOD_NAME>`  
+- `tag=<DEPLOYMENT_TAG>`
+  Deployment tag. Allowing to upgrade tagged deployment of the contract
+
+- `initMethod=<INITIALIZER_METHOD_NAME>`
   Name of the contract initializer method name. Optional.
 
 - `initArgs=<INITIALIZER_ARGUMENTS>`
@@ -100,48 +106,48 @@ Parameters:
 
 ## tx
 
-Usage: `cmd=tx <PROPERTIES>`  
+Usage: `cmd=tx <PROPERTIES>`
 
 Sending transactions to the contract instances.
 
-Properties:  
-- `name=<CONTRACT_NAME>`  
-  Contract name to transaction sending  
+Properties:
+- `name=<CONTRACT_NAME>`
+  Contract name to transaction sending
 
-- `from=<SENDER_ACCOUNT_ADDRESS>`  
-  Account address that should be used to signing transactions   
+- `from=<SENDER_ACCOUNT_ADDRESS>`
+  Account address that should be used to signing transactions
 
-- `address=<CONTRACT_PROXY_ADDRESS>`  
+- `address=<CONTRACT_PROXY_ADDRESS>`
   Address of the deployed contract (proxy) on the network
 
-- `method=<CONTRACT_METHOD_NAME>`  
+- `method=<CONTRACT_METHOD_NAME>`
   Transaction method
 
-- `args=<ARGUMENTS>`  
+- `args=<ARGUMENTS>`
   Transactio arguments
 
 ## call
 
-Usage: `cmd=call <PROPERTIES>`  
+Usage: `cmd=call <PROPERTIES>`
 
 Sending transactions to the contract instances.
 
-Properties:  
-- `name=<CONTRACT_NAME>`  
-  Contract name  
+Properties:
+- `name=<CONTRACT_NAME>`
+  Contract name
 
-- `address=<CONTRACT_PROXY_ADDRESS>`  
+- `address=<CONTRACT_PROXY_ADDRESS>`
   Address of the deployed contract (proxy) on the network
 
-- `method=<CONTRACT_METHOD_NAME>`  
+- `method=<CONTRACT_METHOD_NAME>`
   Contract method to call
 
-- `args=<ARGUMENTS>`  
-  Contract method arguments  
+- `args=<ARGUMENTS>`
+  Contract method arguments
 
 ## task
 
-Usage: `cmd=task <PROPERTIES>`  
+Usage: `cmd=task <PROPERTIES>`
 
 Running the series of predefined commands
 
@@ -151,7 +157,7 @@ Properties:
 - `params=FROM:<addr>,HOLDER1:<addr>,HOLDER2:<addr>`
   Parameters that can be used as in-script commands parameters replacements.
 
-Configuration of the task it is a list of objects with options for each command. All commands are running in the common data scope. Result of each command execution is saved in this common scope and can be used by the next coming command as source for options. To use a result of the execution of the previous command is possible by using a special template for the parameter.  
+Configuration of the task it is a list of objects with options for each command. All commands are running in the common data scope. Result of each command execution is saved in this common scope and can be used by the next coming command as source for options. To use a result of the execution of the previous command is possible by using a special template for the parameter.
 For example: `[TASK:2:contract.proxy]` where:
 - `2` is the order number of the command in the list, and
 - `contract.proxy` a path to the property value in the resulting object
@@ -216,7 +222,7 @@ Here the example of possible task configuration:
         }
     }
 ]
-```  
+```
 
 The explanation of this task:
 - Running of `version` command

@@ -55,10 +55,11 @@ module.exports = async (options) => {
     let command;
 
     for (const task of taskJson) {
-        
+
         task.parameters = applyParamsReplacements(
             task.parameters,
-            parsedParamsReplacements
+            parsedParamsReplacements,
+            resultsScope
         );
 
         try {
@@ -71,7 +72,8 @@ module.exports = async (options) => {
             return;
         } else {
             const taskOptions = buildTaskOptions(task.parameters, resultsScope);
-            resultsScope.push(await command(taskOptions));
+            const result = await command(taskOptions);
+            resultsScope.push(JSON.parse(JSON.stringify(result)));
             command = undefined;
         }
     }

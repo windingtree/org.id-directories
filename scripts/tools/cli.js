@@ -20,7 +20,7 @@ const main = async () => {
         case 'version':
             await version();
             break;
-            
+
         case 'deploy':
             await deploy(args);
             break;
