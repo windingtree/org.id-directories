@@ -374,7 +374,7 @@ contract('Directory', accounts => {
                     ]
                 ]);
                 const orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array').that.include(organizations[0]);
             });
@@ -413,7 +413,7 @@ contract('Directory', accounts => {
 
             it('should remove organization', async () => {
                 let orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array').that.include(organization);
                 const result = await dir
@@ -426,17 +426,17 @@ contract('Directory', accounts => {
                     ]
                 ]);
                 orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array').that.not.include(organization);
             });
         });
 
-        describe('#getOrganizations()', () => {
+        describe('#getOrganizations(uint256,uint256)', () => {
 
             it('should return empty array if organization are not been added before', async () => {
                 const orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array');
                 (orgs.length).should.equal(0);
@@ -451,14 +451,14 @@ contract('Directory', accounts => {
                     .methods['add(bytes32)'](organization)
                     .send({ from: organizationOwner });
                 let orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array').that.include(organization);
                 await dir
                     .methods['remove(bytes32)'](organization)
                     .send({ from: organizationOwner });
                 orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array');
                 (orgs.length).should.equal(0);
@@ -473,7 +473,7 @@ contract('Directory', accounts => {
                     .methods['add(bytes32)'](organization)
                     .send({ from: organizationOwner });
                 let orgs = await dir
-                    .methods['getOrganizations()']()
+                    .methods['getOrganizations(uint256,uint256)'](0, 0)
                     .call();
                 (orgs).should.to.be.an('array').that.include(organization);
             });

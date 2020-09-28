@@ -105,8 +105,10 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
     bytes32[] public registeredOrganizations; // Stores all added organizations.
     mapping(bytes32 => Organization) public organizationData; // Maps the organization to its data. organizationData[_organization].
-    mapping(bytes32 => uint) public organizationsIndex; // Maps the organization to its index in the array. organizationsIndex[_organization].
+    mapping(bytes32 => uint256) public organizationsIndex; // Maps the organization to its index in the registeredOrganizations array. organizationsIndex[_organization].
     mapping(address => mapping(uint256 => bytes32)) public arbitratorDisputeIDToOrg; // Maps a dispute ID to the organization ID. arbitratorDisputeIDToOrg[_arbitrator][_disputeID].
+    bytes32[] public requestedOrganizations; // Stores all organizations in Requested status
+    mapping(bytes32 => uint256) public requestedIndex; // Maps requested organization to its index in the requestedOrganizations array. requestedIndex[_organization].
 
     /* Modifiers */
 
@@ -196,6 +198,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
         organizationsIndex[bytes32(0)] = registeredOrganizations.length;
         registeredOrganizations.push(bytes32(0));
+        requestedIndex[bytes32(0)] = requestedOrganizations.length;
+        requestedOrganizations.push(bytes32(0));
     }
 
     /**
@@ -315,6 +319,9 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         organization.lifStake = requesterDeposit;
         require(lif.transferFrom(msg.sender, address(this), requesterDeposit), "Directory: The token transfer must not fail.");
 
+        requestedIndex[_organization] = requestedOrganizations.length;
+        requestedOrganizations.push(_organization);
+
         emit OrganizationSubmitted(_organization);
     }
 
@@ -402,6 +409,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             if (organizationsIndex[_organization] == 0) {
                 organizationsIndex[_organization] = registeredOrganizations.length;
                 registeredOrganizations.push(_organization);
+                removeOrganization(_organization, true); // Refreshing requested organizations list
                 emit OrganizationAdded(_organization, organizationsIndex[_organization]);
             }
         } else {
@@ -412,17 +420,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             challenge.resolved = true;
             uint256 stake = organization.lifStake;
             organization.lifStake = 0;
-
-            if (organizationsIndex[_organization] != 0) {
-                uint256 index = organizationsIndex[_organization];
-                bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
-                registeredOrganizations[index] = lastOrg;
-                organizationsIndex[lastOrg] = index;
-                registeredOrganizations.length--;
-                organizationsIndex[_organization] = 0;
-                emit OrganizationRemoved(_organization);
-            }
-
+            removeOrganization(_organization, true); // Refreshing requested organizations list
+            removeOrganization(_organization, false);
             require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
         }
     }
@@ -531,15 +530,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
         organization.withdrawalRequestTime = now;
         organization.status = Status.WithdrawalRequested;
-        uint256 index = organizationsIndex[_organization];
-        if (index != 0) {
-            bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
-            registeredOrganizations[index] = lastOrg;
-            organizationsIndex[lastOrg] = index;
-            registeredOrganizations.length--;
-            organizationsIndex[_organization] = 0;
-            emit OrganizationRemoved(_organization);
-        }
+        removeOrganization(_organization, true); // Refreshing requested organizations list
+        removeOrganization(_organization, false);
     }
 
     /**
@@ -609,6 +601,69 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
     }
 
     /* Internal */
+
+    /**
+     * @dev Get all the registered or requested organizations.
+     * @param _cursor Index of the organization from which to start querying.
+     * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
+     * @param returnRequested Boolean flag indicated a kind of organizations either registered (false) or requested (true)
+     * @return organizationsList Array of organization IDs.
+     */
+    function getCertainOrganizations(uint256 _cursor, uint256 _count, bool returnRequested)
+        internal
+        view
+        returns (bytes32[] memory organizationsList)
+    {
+        bytes32[] storage targetOrganizations = returnRequested ? requestedOrganizations : registeredOrganizations;
+        organizationsList = new bytes32[](getCertainOrganizationsCount(_cursor, _count, returnRequested));
+        uint256 index;
+        for (uint256 i = _cursor; i < targetOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
+            if (targetOrganizations[i] != bytes32(0)) {
+                organizationsList[index] = targetOrganizations[i];
+                index++;
+            }
+        }
+    }
+
+    /**
+     * @dev Return registeredOrganizations array length.
+     * @param _cursor Index of the organization from which to start counting.
+     * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
+     * @param returnRequested Boolean flag indicated a kind of organizations either registered (false) or requested (true)
+     * @return count Length of the organizations array.
+     */
+    function getCertainOrganizationsCount(uint256 _cursor, uint256 _count, bool returnRequested)
+        internal
+        view
+        returns (uint256 count) {
+        bytes32[] storage targetOrganizations = returnRequested ? requestedOrganizations : registeredOrganizations;
+        for (uint256 i = _cursor; i < targetOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
+            if (targetOrganizations[i] != bytes32(0))
+                count++;
+        }
+    }
+
+    /**
+     * @dev Remove organization from the storage
+     * @param _organization The ID of the organization.
+     * @param removeRequested Boolean flag indicated a kind of organizations either registered (false) or requested (true)
+     */
+    function removeOrganization(bytes32 _organization, bool removeRequested) internal {
+        bytes32[] storage targetOrganizations = removeRequested ? requestedOrganizations : registeredOrganizations;
+        mapping(bytes32 => uint256) storage targetIndex = removeRequested ? requestedIndex : organizationsIndex;
+        uint256 index = targetIndex[_organization];
+        if (index != 0) {
+            bytes32 lastOrg = targetOrganizations[targetOrganizations.length - 1];
+            targetOrganizations[index] = lastOrg;
+            targetIndex[lastOrg] = index;
+            targetOrganizations.length--;
+            targetIndex[_organization] = 0;
+
+            if (!removeRequested) {
+                emit OrganizationRemoved(_organization);
+            }
+        }
+    }
 
     /**
      * @dev Return the contribution value and remainder from available ETH and required amount.
@@ -696,6 +751,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
                 if (organizationsIndex[organization.ID] == 0) {
                     organizationsIndex[organization.ID] = registeredOrganizations.length;
                     registeredOrganizations.push(organization.ID);
+                    removeOrganization(organization.ID, true); // Refreshing requested organizations list
                     emit OrganizationAdded(organization.ID, organizationsIndex[organization.ID]);
                 }
             }
@@ -704,15 +760,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             organization.status = Status.Absent;
             organization.withdrawalRequestTime = 0;
             organization.lifStake = 0;
-            if (organizationsIndex[organization.ID] != 0) {
-                uint256 index = organizationsIndex[organization.ID];
-                bytes32 lastOrg = registeredOrganizations[registeredOrganizations.length - 1];
-                registeredOrganizations[index] = lastOrg;
-                organizationsIndex[lastOrg] = index;
-                registeredOrganizations.length--;
-                organizationsIndex[organization.ID] = 0;
-                emit OrganizationRemoved(organization.ID);
-            }
+            removeOrganization(organization.ID, true); // Refreshing requested organizations list
+            removeOrganization(organization.ID, false);
             require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
         // 0 ruling. Revert the organization to its default state.
         } else {
@@ -752,14 +801,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         view
         returns (bytes32[] memory organizationsList)
     {
-        organizationsList = new bytes32[](getOrganizationsCount(_cursor, _count));
-        uint256 index;
-        for (uint256 i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
-            if (registeredOrganizations[i] != bytes32(0)) {
-                organizationsList[index] = registeredOrganizations[i];
-                index++;
-            }
-        }
+        return getCertainOrganizations(_cursor, _count, false);
     }
 
     /**
@@ -768,11 +810,38 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
      * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
      * @return count Length of the organizations array.
      */
-    function getOrganizationsCount(uint256 _cursor, uint256 _count) public view returns (uint256 count) {
-        for (uint256 i = _cursor; i < registeredOrganizations.length && (_count == 0 || i < _cursor + _count); i++) {
-            if (registeredOrganizations[i] != bytes32(0))
-                count++;
-        }
+    function getOrganizationsCount(uint256 _cursor, uint256 _count)
+        public
+        view
+        returns (uint256 count) {
+        return getCertainOrganizationsCount(_cursor, _count, false);
+    }
+
+    /**
+     * @dev Get all the requested organizations.
+     * @param _cursor Index of the organization from which to start querying.
+     * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
+     * @return organizationsList Array of organization IDs.
+     */
+    function getRequestedOrganizations(uint256 _cursor, uint256 _count)
+        external
+        view
+        returns (bytes32[] memory organizationsList)
+    {
+        return getCertainOrganizations(_cursor, _count, true);
+    }
+
+    /**
+     * @dev Return registeredOrganizations array length.
+     * @param _cursor Index of the organization from which to start counting.
+     * @param _count Number of organizations to go through. Iterates until the end if set to "0" or number higher than the total number of organizations.
+     * @return count Length of the organizations array.
+     */
+    function getRequestedOrganizationsCount(uint256 _cursor, uint256 _count)
+        public
+        view
+        returns (uint256 count) {
+        return getCertainOrganizationsCount(_cursor, _count, true);
     }
 
     /**

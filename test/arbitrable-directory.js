@@ -135,6 +135,12 @@ contract('ArbitrableDirectory', function (accounts) {
 
         await aD.requestToAdd(ID, { from: requester });
 
+        const requestedCount = await aD.getRequestedOrganizationsCount(0, 0);
+        assert.equal(requestedCount, 1, 'Wrong requested organization count');
+
+        const requestedOrgs = await aD.getRequestedOrganizations(0, 0);
+        assert.equal(requestedOrgs[0], ID, 'Requested organization organization not appeared in the organizations list');
+
         const orgData = await aD.organizationData(ID);
         assert.equal(orgData[0], ID, 'The ID is not set up properly');
         assert.equal(orgData[1].toNumber(), 1, 'The status is not set up properly');
@@ -675,6 +681,8 @@ contract('ArbitrableDirectory', function (accounts) {
             ID,
             'The event has wrong organization'
         );
+        const requestedOrgs = await aD.getRequestedOrganizations(0, 0);
+        assert.equal(requestedOrgs.length, 0, 'Requested list should be empty');
     });
 
     it('Should allow challenger to withdraw funds if the challenge was timed out', async () => {
