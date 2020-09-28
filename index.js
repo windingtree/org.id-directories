@@ -1,10 +1,12 @@
 
+const ArbitrableDirectoryContract = require('./build/contracts/ArbitrableDirectory.json');
 const DirectoryContract = require('./build/contracts/Directory.json');
 const DirectoryIndexContract = require('./build/contracts/DirectoryIndex.json');
 const DirectoryIndexInterfaceContract = require('./build/contracts/DirectoryIndexInterface.json');
 const DirectoryInterfaceContract = require('./build/contracts/DirectoryInterface.json');
 
 module.exports = {
+    ArbitrableDirectoryContract: ArbitrableDirectoryContract,
     DirectoryContract: DirectoryContract,
     DirectoryIndexContract: DirectoryIndexContract,
     DirectoryIndexInterfaceContract: DirectoryIndexInterfaceContract,
