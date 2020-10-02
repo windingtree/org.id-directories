@@ -1,11 +1,11 @@
 {
-  "version": "0.12.0",
+  "version": "0.13.0",
   "contract": {
     "name": "DirectoryIndex",
-    "implementation": "0x549483E81603410D8009a39D5953BB9121e28Cb1",
-    "proxy": "0xB620bdD4fF7430e709dF5D868384b2c13a2F074e"
+    "implementation": "0x05534bd03A3363362bDf32A00f180559C65bbA76",
+    "proxy": "0x72bbe128Bd5B12DF5520e9248f8778b0F1680529"
   },
   "owner": "0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959",
-  "proxyAdmin": "0x3e8409b201c76Cc56F70f18A6eB3244E22545BaB",
-  "blockNumber": 8728681
+  "proxyAdmin": "0x76E30839B4d1f2DdF07228D4eCDcAb34afDC01B3",
+  "blockNumber": 8802404
 }

@@ -1,11 +1,11 @@
 {
-  "version": "0.12.0",
+  "version": "0.13.0",
   "contract": {
     "name": "ArbitrableDirectory",
-    "implementation": "0x425cA3c2841446F62ff7a64D10cb4d83f41aA161",
-    "proxy": "0xa03aa8045Fe35DAA4df20276EfBDBE2537d48380"
+    "implementation": "0x6691cb106F574F2467A6328683Cf44fdd81840b8",
+    "proxy": "0xd8B17BC457322013cA4C84e3Fd36413eBe18418b"
   },
   "owner": "0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959",
-  "proxyAdmin": "0x7E0676053c20BbA88cb7E8088E985E0E01E5367e",
-  "blockNumber": 8728666
+  "proxyAdmin": "0x8f914daD9CD8204B71FE318C92bC875615f288b1",
+  "blockNumber": 8802367
 }
