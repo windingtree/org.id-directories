@@ -103,6 +103,7 @@ contract('ArbitrableDirectory', function (accounts) {
         assert.equal(await aD.lif(), lif.address);
         assert.equal(await aD.arbitrator(), arbitrator.address);
         assert.equal(await aD.arbitratorExtraData(), arbitratorExtraData);
+        assert.equal(await aD.RULING_OPTIONS(), '2');
         assert.equal(await aD.requesterDeposit(), requesterDeposit);
         assert.equal(await aD.challengeBaseDeposit(), challengeBaseDeposit);
         assert.equal(await aD.executionTimeout(), executionTimeout);

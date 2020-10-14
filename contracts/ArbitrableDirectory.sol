@@ -86,7 +86,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
     IArbitrator public arbitrator; // The arbitrator contract.
     bytes public arbitratorExtraData; // Extra data for the arbitrator contract.
 
-    uint256 public RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
+    uint256 public constant RULING_OPTIONS = 2; // The amount of non 0 choices the arbitrator can give.
 
     uint256 public requesterDeposit; // The amount of Lif tokens in base units a requester must deposit in order to open a request to add the organization.
     uint256 public challengeBaseDeposit; // The base deposit to challenge the organization. Also the base deposit to accept the challenge. In wei.
@@ -880,6 +880,29 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         return (
             organization.challenges.length
         );
+    }
+
+    /**
+     * @dev Get the number of ongoing disputes of the organization.
+     * @param _organization The ID of the organization.
+     * @return numberOfDisputes Total number of disputes of the organization.
+     */
+    function getNumberOfDisputes(bytes32 _organization)
+        external
+        view
+        returns (
+            uint256 numberOfDisputes
+        )
+    {
+        Organization storage organization = organizationData[_organization];
+
+        for (uint256 i = 0; i < organization.challenges.length; i++) {
+            if (organizationData[_organization].challenges[i].disputed &&
+                !organizationData[_organization].challenges[i].resolved) {
+
+                numberOfDisputes++;
+            }
+        }
     }
 
     /**
