@@ -1,20 +1,39 @@
+/**
+ * Deployment and configuration of the EAA
+ */
 global.web3 = web3;
-const keys = require('../keys.json');
-
 const EnhancedAppealableArbitrator = artifacts.require('EnhancedAppealableArbitrator');
 
 const main = async () => {
-
+    const accounts = await web3.eth.getAccounts();
+    const arbitrationFee = 1000;
+    const appealTimeOut = 86400; // 24 hours
+    const arbitratorExtraData = '0x85';
     const arbitrator = await EnhancedAppealableArbitrator.new(
-        1000,
-        keys.key,
-        '0x85',
-        180,
+        arbitrationFee,
+        accounts[1],
+        arbitratorExtraData,
+        appealTimeOut,
         {
-            from: keys.key
+            from: accounts[1]
+        }
+    );
+    await arbitrator.changeArbitrator(
+        arbitrator.address,
+        {
+            from: accounts[1]
+        }
+    );
+    await arbitrator.createDispute(
+        3,
+        arbitratorExtraData,
+        {
+            from: accounts[1],
+            value: arbitrationFee
         }
     );
     console.log('EnhancedAppealableArbitrator:', arbitrator.address);
+    console.log('EAA Owner:', accounts[1]);
 };
 
 module.exports = callback => main()

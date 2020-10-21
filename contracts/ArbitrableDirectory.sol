@@ -138,6 +138,18 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
      */
     event OrganizationRemoved(bytes32 indexed _organization);
 
+    /** @dev Event triggered every time organization request is removed.
+     *  @param _organization The organization that was removed.
+     */
+    event OrganizationRequestRemoved(bytes32 indexed _organization);
+
+    /** @dev Event triggered every time organization is challenged.
+     *  @param _organization The organization that was added.
+     *  @param _challenger The challenger account
+     *  @param _index Organization's index in the array.
+     */
+    event OrganizationChallenged(bytes32 indexed _organization, address _challenger, uint256 _index);
+
     /* External and Public */
 
     // ************************ //
@@ -355,6 +367,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         require(round.paidFees[uint256(Party.Challenger)] >= totalCost, "Directory: You must fully fund your side.");
         round.hasPaid[uint256(Party.Challenger)] = true;
 
+        emit OrganizationChallenged(_organization, challenge.challenger, organization.challenges.length - 1);
+
         if (bytes(_evidence).length > 0)
             emit Evidence(challenge.arbitrator, uint256(keccak256(abi.encodePacked(_organization, organization.challenges.length))), msg.sender, _evidence);
     }
@@ -409,8 +423,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             if (organizationsIndex[_organization] == 0) {
                 organizationsIndex[_organization] = registeredOrganizations.length;
                 registeredOrganizations.push(_organization);
-                removeOrganization(_organization, true); // Refreshing requested organizations list
                 emit OrganizationAdded(_organization, organizationsIndex[_organization]);
+                removeFromIndex(_organization, true); // Refreshing requested organizations list
             }
         } else {
             require(now - organization.lastStatusChange > responseTimeout, "Directory: Time to respond to the challenge must pass.");
@@ -420,8 +434,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             challenge.resolved = true;
             uint256 stake = organization.lifStake;
             organization.lifStake = 0;
-            removeOrganization(_organization, true); // Refreshing requested organizations list
-            removeOrganization(_organization, false);
+            removeFromIndex(_organization, true); // Refreshing requested organizations list
+            removeFromIndex(_organization, false);
             require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
         }
     }
@@ -530,8 +544,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
         organization.withdrawalRequestTime = now;
         organization.status = Status.WithdrawalRequested;
-        removeOrganization(_organization, true); // Refreshing requested organizations list
-        removeOrganization(_organization, false);
+        removeFromIndex(_organization, true); // Refreshing requested organizations list
+        removeFromIndex(_organization, false);
     }
 
     /**
@@ -648,7 +662,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
      * @param _organization The ID of the organization.
      * @param removeRequested Boolean flag indicated a kind of organizations either registered (false) or requested (true)
      */
-    function removeOrganization(bytes32 _organization, bool removeRequested) internal {
+    function removeFromIndex(bytes32 _organization, bool removeRequested) internal {
         bytes32[] storage targetOrganizations = removeRequested ? requestedOrganizations : registeredOrganizations;
         mapping(bytes32 => uint256) storage targetIndex = removeRequested ? requestedIndex : organizationsIndex;
         uint256 index = targetIndex[_organization];
@@ -661,6 +675,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
             if (!removeRequested) {
                 emit OrganizationRemoved(_organization);
+            } else {
+                emit OrganizationRequestRemoved(_organization);
             }
         }
     }
@@ -751,7 +767,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
                 if (organizationsIndex[organization.ID] == 0) {
                     organizationsIndex[organization.ID] = registeredOrganizations.length;
                     registeredOrganizations.push(organization.ID);
-                    removeOrganization(organization.ID, true); // Refreshing requested organizations list
+                    removeFromIndex(organization.ID, true); // Refreshing requested organizations list
                     emit OrganizationAdded(organization.ID, organizationsIndex[organization.ID]);
                 }
             }
@@ -760,9 +776,9 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             organization.status = Status.Absent;
             organization.withdrawalRequestTime = 0;
             organization.lifStake = 0;
-            removeOrganization(organization.ID, true); // Refreshing requested organizations list
-            removeOrganization(organization.ID, false);
             require(lif.transfer(challenge.challenger, stake), "Directory: The token transfer must not fail.");
+            removeFromIndex(organization.ID, true); // Refreshing requested organizations list
+            removeFromIndex(organization.ID, false);
         // 0 ruling. Revert the organization to its default state.
         } else {
             if (organizationsIndex[organization.ID] == 0) {

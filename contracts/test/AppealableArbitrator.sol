@@ -57,7 +57,6 @@ contract AppealableArbitrator is CentralizedArbitrator, IArbitrable {
         uint _timeOut
     ) public CentralizedArbitrator(_arbitrationPrice) {
         timeOut = _timeOut;
-        arbitrator = _arbitrator;
     }
 
     /* External */

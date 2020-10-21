@@ -116,6 +116,24 @@ contract('ArbitrableDirectory', function (accounts) {
         assert.equal(emptyOrg, 0x0, 'Unexpected org value with 0 index');
     });
 
+    // it('Should return the directory info', async () => {
+    //     const info = await aD.getInfo();
+    //     assert.equal(info.governor, governor);
+    //     assert.equal(info.getSegment, segment);
+    //     assert.equal(info.orgId, orgId.address);
+    //     assert.equal(info.lif, lif.address);
+    //     assert.equal(info.arbitrator, arbitrator.address);
+    //     assert.equal(info.arbitratorExtraData, arbitratorExtraData);
+    //     assert.equal(info.requesterDeposit, requesterDeposit);
+    //     assert.equal(info.challengeBaseDeposit, challengeBaseDeposit);
+    //     assert.equal(info.executionTimeout, executionTimeout);
+    //     assert.equal(info.responseTimeout, responseTimeout);
+    //     assert.equal(info.withdrawTimeout, withdrawTimeout);
+    //     assert.equal(info.sharedStakeMultiplier, sharedStakeMultiplier);
+    //     assert.equal(info.winnerStakeMultiplier, winnerStakeMultiplier);
+    //     assert.equal(info.loserStakeMultiplier, loserStakeMultiplier);
+    // });
+
     it('Should set the correct values when making a new request', async () => {
     // Check the requires first.
         await expectRevert(
