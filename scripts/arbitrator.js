@@ -7,7 +7,7 @@ const EnhancedAppealableArbitrator = artifacts.require('EnhancedAppealableArbitr
 const main = async () => {
     const accounts = await web3.eth.getAccounts();
     const arbitrationFee = 1000;
-    const appealTimeOut = 86400; // 24 hours
+    const appealTimeOut = 43200; // 12 hours
     const arbitratorExtraData = '0x85';
     const arbitrator = await EnhancedAppealableArbitrator.new(
         arbitrationFee,

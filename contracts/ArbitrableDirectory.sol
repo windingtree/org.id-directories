@@ -146,9 +146,9 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
     /** @dev Event triggered every time organization is challenged.
      *  @param _organization The organization that was added.
      *  @param _challenger The challenger account
-     *  @param _index Organization's index in the array.
+     *  @param _challenge Challenge Id
      */
-    event OrganizationChallenged(bytes32 indexed _organization, address _challenger, uint256 _index);
+    event OrganizationChallenged(bytes32 indexed _organization, address _challenger, uint256 _challenge);
 
     /* External and Public */
 
@@ -364,6 +364,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         uint256 arbitrationCost = challenge.arbitrator.arbitrationCost(challenge.arbitratorExtraData);
         uint256 totalCost = arbitrationCost.addCap(challengeBaseDeposit);
         contribute(round, Party.Challenger, msg.sender, msg.value, totalCost);
+
         require(round.paidFees[uint256(Party.Challenger)] >= totalCost, "Directory: You must fully fund your side.");
         round.hasPaid[uint256(Party.Challenger)] = true;
 
@@ -389,6 +390,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         uint256 arbitrationCost = challenge.arbitrator.arbitrationCost(challenge.arbitratorExtraData);
         uint256 totalCost = arbitrationCost.addCap(challengeBaseDeposit);
         contribute(round, Party.Requester, msg.sender, msg.value, totalCost);
+
         require(round.paidFees[uint256(Party.Requester)] >= totalCost, "Directory: You must fully fund your side.");
         round.hasPaid[uint256(Party.Requester)] = true;
 
@@ -502,29 +504,31 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         Round storage round = challenge.rounds[_round];
         require(challenge.resolved, "Directory: The challenge must be resolved.");
 
-        uint256 reward;
-        if (!round.hasPaid[uint256(Party.Requester)] || !round.hasPaid[uint256(Party.Challenger)]) {
-            // Reimburse if not enough fees were raised to appeal the ruling.
-            reward = round.contributions[_beneficiary][uint256(Party.Requester)] + round.contributions[_beneficiary][uint256(Party.Challenger)];
-        } else if (challenge.ruling == Party.None) {
-            // Reimburse unspent fees proportionally if there is no winner or loser.
-            uint256 rewardRequester = round.paidFees[uint256(Party.Requester)] > 0
-                ? (round.contributions[_beneficiary][uint256(Party.Requester)] * round.feeRewards) / (round.paidFees[uint256(Party.Challenger)] + round.paidFees[uint256(Party.Requester)])
-                : 0;
-            uint256 rewardChallenger = round.paidFees[uint256(Party.Challenger)] > 0
-                ? (round.contributions[_beneficiary][uint256(Party.Challenger)] * round.feeRewards) / (round.paidFees[uint256(Party.Challenger)] + round.paidFees[uint256(Party.Requester)])
-                : 0;
-
-            reward = rewardRequester + rewardChallenger;
-        } else {
-            // Reward the winner.
-            reward = round.paidFees[uint256(challenge.ruling)] > 0
-                ? (round.contributions[_beneficiary][uint256(challenge.ruling)] * round.feeRewards) / round.paidFees[uint256(challenge.ruling)]
-                : 0;
-
-        }
+        uint256 reward = calculateFeesAndRewards(_beneficiary, challenge, round);
         round.contributions[_beneficiary][uint256(Party.Requester)] = 0;
         round.contributions[_beneficiary][uint256(Party.Challenger)] = 0;
+
+        _beneficiary.send(reward);
+    }
+
+    /**
+     * @dev Reimburse contributions if no disputes were raised. If a dispute was raised, send the fee stake rewards and reimbursements proportionally to the contributions made to the winner of a dispute.
+     * @param _beneficiary The address that made contributions.
+     * @param _organization The ID of the organization.
+     * @param _challenge The challenge from which to withdraw
+     */
+    function withdrawFeesAndRewardsTotal(address payable _beneficiary, bytes32 _organization, uint256 _challenge) external {
+        Organization storage organization = organizationData[_organization];
+        Challenge storage challenge = organization.challenges[_challenge];
+        require(challenge.resolved, "Directory: The challenge must be resolved.");
+
+        uint256 reward;
+
+        for (uint256 i = 0; i < challenge.rounds.length; i++) {
+            reward += calculateFeesAndRewards(_beneficiary, challenge, challenge.rounds[i]);
+            challenge.rounds[i].contributions[_beneficiary][uint256(Party.Requester)] = 0;
+            challenge.rounds[i].contributions[_beneficiary][uint256(Party.Challenger)] = 0;
+        }
 
         _beneficiary.send(reward);
     }
@@ -785,6 +789,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
                 organization.status = Status.Absent;
                 organization.withdrawalRequestTime = 0;
                 organization.lifStake = 0;
+                removeFromIndex(organization.ID, true); // Refreshing requested organizations list
                 require(lif.transfer(orgOwner, stake), "Directory: The token transfer must not fail.");
             // Stake of the already registered organization stays in the contract in this case.
             } else
@@ -793,6 +798,39 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
         challenge.resolved = true;
         challenge.ruling = Party(_ruling);
+    }
+
+    /**
+     * @dev Calculate fees and rewards for the beneficiary
+     * @param _beneficiary The address that made contributions.
+     * @param challenge The challenge from which to withdraw.
+     * @param round The round from which to withdraw.
+     */
+    function calculateFeesAndRewards(
+        address payable _beneficiary,
+        Challenge storage challenge,
+        Round storage round
+    ) internal view returns (uint256 reward) {
+        if (!round.hasPaid[uint256(Party.Requester)] || !round.hasPaid[uint256(Party.Challenger)]) {
+            // Reimburse if not enough fees were raised to appeal the ruling.
+            reward = round.contributions[_beneficiary][uint256(Party.Requester)] + round.contributions[_beneficiary][uint256(Party.Challenger)];
+        } else if (challenge.ruling == Party.None) {
+            // Reimburse unspent fees proportionally if there is no winner or loser.
+            uint256 rewardRequester = round.paidFees[uint256(Party.Requester)] > 0
+                ? (round.contributions[_beneficiary][uint256(Party.Requester)] * round.feeRewards) / (round.paidFees[uint256(Party.Challenger)] + round.paidFees[uint256(Party.Requester)])
+                : 0;
+            uint256 rewardChallenger = round.paidFees[uint256(Party.Challenger)] > 0
+                ? (round.contributions[_beneficiary][uint256(Party.Challenger)] * round.feeRewards) / (round.paidFees[uint256(Party.Challenger)] + round.paidFees[uint256(Party.Requester)])
+                : 0;
+
+            reward = rewardRequester + rewardChallenger;
+        } else {
+            // Reward the winner.
+            reward = round.paidFees[uint256(challenge.ruling)] > 0
+                ? (round.contributions[_beneficiary][uint256(challenge.ruling)] * round.feeRewards) / round.paidFees[uint256(challenge.ruling)]
+                : 0;
+
+        }
     }
 
     // ************************ //
@@ -982,5 +1020,34 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             round.hasPaid,
             round.feeRewards
         );
+    }
+
+    /**
+     * @dev Return amount of beneficiary's reward
+     * @param _beneficiary The address that made contributions.
+     * @param _organization The ID of the organization.
+     * @param _challenge The challenge from which to withdraw.
+     * @param _round The round from which to withdraw.
+     */
+    function getFeesAndRewards(address payable _beneficiary, bytes32 _organization, uint256 _challenge, uint256 _round) public view returns (uint256 reward) {
+        Organization storage organization = organizationData[_organization];
+        Challenge storage challenge = organization.challenges[_challenge];
+        Round storage round = challenge.rounds[_round];
+        reward = calculateFeesAndRewards(_beneficiary, challenge, round);
+    }
+
+    /**
+     * @dev Return amount of beneficiary's reward
+     * @param _beneficiary The address that made contributions.
+     * @param _organization The ID of the organization.
+     * @param _challenge The challenge from which to withdraw
+     */
+    function getFeesAndRewardsTotal(address payable _beneficiary, bytes32 _organization, uint256 _challenge) public view returns (uint256 reward) {
+        Organization storage organization = organizationData[_organization];
+        Challenge storage challenge = organization.challenges[_challenge];
+
+        for (uint256 i = 0; i < challenge.rounds.length; i++) {
+            reward += calculateFeesAndRewards(_beneficiary, challenge, challenge.rounds[i]);
+        }
     }
 }

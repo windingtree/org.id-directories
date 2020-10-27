@@ -15,7 +15,7 @@ const getInfuraConfig = (networkName, networkId) => {
         provider: () => {
             return new HDWalletProvider(
                 keys.keys,
-                `https://${networkName}.infura.io/v3/` + keys.infura_projectid,
+                `https://${networkName}.infura.io/v3/` + keys.infura_projectid_backup,
                 0,
                 10
             );

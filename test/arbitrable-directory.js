@@ -291,30 +291,52 @@ contract('ArbitrableDirectory', function (accounts) {
             'Incorrect number of challenges for the organization'
         );
 
-        // Check the event.
-        const evidenceGroupID = parseInt(soliditySha3(ID, nbChallenges), 16);
+        // Check the OrganizationChallenged event.
         assert.equal(
             txChallenge.logs[0].event,
+            'OrganizationChallenged',
+            'The event OrganizationChallenged has not been created'
+        );
+        assert.equal(
+            txChallenge.logs[0].args._organization,
+            ID,
+            'The event has wrong _organization'
+        );
+        assert.equal(
+            txChallenge.logs[0].args._challenger,
+            challenger,
+            'The event has wrong _challenger'
+        );
+        assert.equal(
+            txChallenge.logs[0].args._challenge,
+            0,
+            'The event has wrong _challenge Id'
+        );
+
+        // Check the Evidence event.
+        const evidenceGroupID = parseInt(soliditySha3(ID, nbChallenges), 16);
+        assert.equal(
+            txChallenge.logs[1].event,
             'Evidence',
             'The event Evidence has not been created'
         );
         assert.equal(
-            txChallenge.logs[0].args._arbitrator,
+            txChallenge.logs[1].args._arbitrator,
             arbitrator.address,
             'The event has wrong arbitrator'
         );
         assert.equal(
-            txChallenge.logs[0].args._evidenceGroupID,
+            txChallenge.logs[1].args._evidenceGroupID,
             evidenceGroupID,
             'The event has wrong evidenceGroup ID'
         );
         assert.equal(
-            txChallenge.logs[0].args._party,
+            txChallenge.logs[1].args._party,
             challenger,
             'The event has wrong party'
         );
         assert.equal(
-            txChallenge.logs[0].args._evidence,
+            txChallenge.logs[1].args._evidence,
             'Evidence.json',
             'The event has wrong evidence'
         );
@@ -722,8 +744,13 @@ contract('ArbitrableDirectory', function (accounts) {
         await aD.executeTimeout(ID, { from: challenger });
 
         const oldBalance = await web3.eth.getBalance(challenger);
+        const fr = await aD.getFeesAndRewards(challenger, ID, 0, 0);
         await aD.withdrawFeesAndRewards(challenger, ID, 0, 0, { from: governor });
         const newBalance = await web3.eth.getBalance(challenger);
+        assert(
+            new BN(oldBalance).add(new BN(fr)).eq(new BN(newBalance)),
+            'Incorrect calculated fees and rewards'
+        );
         assert(
             new BN(newBalance).eq(new BN(oldBalance).add(new BN(challengeTotalCost))),
             'Incorrect challenger balance after withdrawal'

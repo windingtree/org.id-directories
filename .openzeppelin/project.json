@@ -11,7 +11,7 @@
   },
   "dependencies": {},
   "name": "org.id-directories",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "publish": true,
   "compiler": {
     "manager": "openzeppelin",
