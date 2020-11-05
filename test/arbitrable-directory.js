@@ -291,11 +291,11 @@ contract('ArbitrableDirectory', function (accounts) {
             'Incorrect number of challenges for the organization'
         );
 
-        // Check the OrganizationChallenged event.
+        // Check the ChallengeContributed event.
         assert.equal(
             txChallenge.logs[0].event,
-            'OrganizationChallenged',
-            'The event OrganizationChallenged has not been created'
+            'ChallengeContributed',
+            'The event ChallengeContributed has not been created'
         );
         assert.equal(
             txChallenge.logs[0].args._organization,
@@ -303,12 +303,34 @@ contract('ArbitrableDirectory', function (accounts) {
             'The event has wrong _organization'
         );
         assert.equal(
-            txChallenge.logs[0].args._challenger,
+            txChallenge.logs[0].args._challenge,
+            0,
+            'The event has wrong _challenge Id'
+        );
+        assert.equal(
+            txChallenge.logs[0].args._contributor,
+            challenger,
+            'The event has wrong _contributor'
+        );
+
+        // Check the OrganizationChallenged event.
+        assert.equal(
+            txChallenge.logs[1].event,
+            'OrganizationChallenged',
+            'The event OrganizationChallenged has not been created'
+        );
+        assert.equal(
+            txChallenge.logs[1].args._organization,
+            ID,
+            'The event has wrong _organization'
+        );
+        assert.equal(
+            txChallenge.logs[1].args._challenger,
             challenger,
             'The event has wrong _challenger'
         );
         assert.equal(
-            txChallenge.logs[0].args._challenge,
+            txChallenge.logs[1].args._challenge,
             0,
             'The event has wrong _challenge Id'
         );
@@ -316,27 +338,27 @@ contract('ArbitrableDirectory', function (accounts) {
         // Check the Evidence event.
         const evidenceGroupID = parseInt(soliditySha3(ID, nbChallenges), 16);
         assert.equal(
-            txChallenge.logs[1].event,
+            txChallenge.logs[2].event,
             'Evidence',
             'The event Evidence has not been created'
         );
         assert.equal(
-            txChallenge.logs[1].args._arbitrator,
+            txChallenge.logs[2].args._arbitrator,
             arbitrator.address,
             'The event has wrong arbitrator'
         );
         assert.equal(
-            txChallenge.logs[1].args._evidenceGroupID,
+            txChallenge.logs[2].args._evidenceGroupID,
             evidenceGroupID,
             'The event has wrong evidenceGroup ID'
         );
         assert.equal(
-            txChallenge.logs[1].args._party,
+            txChallenge.logs[2].args._party,
             challenger,
             'The event has wrong party'
         );
         assert.equal(
-            txChallenge.logs[1].args._evidence,
+            txChallenge.logs[2].args._evidence,
             'Evidence.json',
             'The event has wrong evidence'
         );
@@ -442,38 +464,34 @@ contract('ArbitrableDirectory', function (accounts) {
             'FeeRewards has not been registered correctly after accepting the challenge'
         );
 
-        // Check the event.
-        const evidenceGroupID = parseInt(soliditySha3(ID, 1), 16);
+        // Check the ChallengeContributed event.
         assert.equal(
             txAccept.logs[0].event,
-            'Dispute',
-            'The event Dispute has not been created'
+            'ChallengeContributed',
+            'The event ChallengeContributed has not been created'
         );
         assert.equal(
-            txAccept.logs[0].args._arbitrator,
-            arbitrator.address,
-            'The event has wrong arbitrator'
+            txAccept.logs[0].args._organization,
+            ID,
+            'The event has wrong _organization'
         );
         assert.equal(
-            txAccept.logs[0].args._disputeID.toNumber(),
-            1,
-            'The event has wrong dispute ID'
-        );
-        assert.equal(
-            txAccept.logs[0].args._metaEvidenceID.toNumber(),
+            txAccept.logs[0].args._challenge,
             0,
-            'The event has wrong metaevidence ID'
+            'The event has wrong _challenge'
         );
         assert.equal(
-            txAccept.logs[0].args._evidenceGroupID,
-            evidenceGroupID,
-            'The event has wrong evidenceGroup ID'
+            txAccept.logs[0].args._contributor,
+            other,
+            'The event has wrong _contributor'
         );
 
+        // Check the Dispute event.
+        const evidenceGroupID = parseInt(soliditySha3(ID, 1), 16);
         assert.equal(
             txAccept.logs[1].event,
-            'Evidence',
-            'The event Evidence has not been created'
+            'Dispute',
+            'The event Dispute has not been created'
         );
         assert.equal(
             txAccept.logs[1].args._arbitrator,
@@ -481,17 +499,43 @@ contract('ArbitrableDirectory', function (accounts) {
             'The event has wrong arbitrator'
         );
         assert.equal(
+            txAccept.logs[1].args._disputeID.toNumber(),
+            1,
+            'The event has wrong dispute ID'
+        );
+        assert.equal(
+            txAccept.logs[1].args._metaEvidenceID.toNumber(),
+            0,
+            'The event has wrong metaevidence ID'
+        );
+        assert.equal(
             txAccept.logs[1].args._evidenceGroupID,
             evidenceGroupID,
             'The event has wrong evidenceGroup ID'
         );
+
         assert.equal(
-            txAccept.logs[1].args._party,
+            txAccept.logs[2].event,
+            'Evidence',
+            'The event Evidence has not been created'
+        );
+        assert.equal(
+            txAccept.logs[2].args._arbitrator,
+            arbitrator.address,
+            'The event has wrong arbitrator'
+        );
+        assert.equal(
+            txAccept.logs[2].args._evidenceGroupID,
+            evidenceGroupID,
+            'The event has wrong evidenceGroup ID'
+        );
+        assert.equal(
+            txAccept.logs[2].args._party,
             other,
             'The event has wrong party'
         );
         assert.equal(
-            txAccept.logs[1].args._evidence,
+            txAccept.logs[2].args._evidence,
             'Accept.json',
             'The event has wrong evidence'
         );

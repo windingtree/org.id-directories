@@ -150,6 +150,13 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
      */
     event OrganizationChallenged(bytes32 indexed _organization, address _challenger, uint256 _challenge);
 
+    /** @dev Event triggered every time challenge is contributed.
+     *  @param _organization The organization that was added.
+     *  @param _challenge Challenge Id
+     *  @param _contributor The contributor account
+     */
+    event ChallengeContributed(bytes32 indexed _organization, uint256 _challenge, address _contributor);
+
     /* External and Public */
 
     // ************************ //
@@ -363,7 +370,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
         uint256 arbitrationCost = challenge.arbitrator.arbitrationCost(challenge.arbitratorExtraData);
         uint256 totalCost = arbitrationCost.addCap(challengeBaseDeposit);
-        contribute(round, Party.Challenger, msg.sender, msg.value, totalCost);
+        contribute(round, Party.Challenger, msg.sender, msg.value, totalCost, _organization);
 
         require(round.paidFees[uint256(Party.Challenger)] >= totalCost, "Directory: You must fully fund your side.");
         round.hasPaid[uint256(Party.Challenger)] = true;
@@ -389,7 +396,7 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
         Round storage round = challenge.rounds[0];
         uint256 arbitrationCost = challenge.arbitrator.arbitrationCost(challenge.arbitratorExtraData);
         uint256 totalCost = arbitrationCost.addCap(challengeBaseDeposit);
-        contribute(round, Party.Requester, msg.sender, msg.value, totalCost);
+        contribute(round, Party.Requester, msg.sender, msg.value, totalCost, _organization);
 
         require(round.paidFees[uint256(Party.Requester)] >= totalCost, "Directory: You must fully fund your side.");
         round.hasPaid[uint256(Party.Requester)] = true;
@@ -457,28 +464,26 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
             "Directory: Contributions must be made within the appeal period."
         );
 
-        uint256 multiplier;
         Party winner = Party(challenge.arbitrator.currentRuling(challenge.disputeID));
-        Party loser;
-        if (winner == Party.Requester)
-            loser = Party.Challenger;
-        else if (winner == Party.Challenger)
-            loser = Party.Requester;
-        require(
-            _side != loser || (now-appealPeriodStart < (appealPeriodEnd-appealPeriodStart)/2),
-            "Directory: The loser must contribute during the first half of the period.");
 
-        if (_side == winner)
+        require(
+            _side == winner || _side == Party.None || (now-appealPeriodStart < (appealPeriodEnd-appealPeriodStart)/2),
+            "Directory: The loser must contribute during the first half of the period."
+        );
+
+        uint256 multiplier;
+        if (_side == winner) {
             multiplier = winnerStakeMultiplier;
-        else if (_side == loser)
+        } else if (_side != winner && _side != Party.None) {
             multiplier = loserStakeMultiplier;
-        else
+        } else {
             multiplier = sharedStakeMultiplier;
+        }
 
         Round storage round = challenge.rounds[challenge.rounds.length - 1];
         uint256 appealCost = challenge.arbitrator.appealCost(challenge.disputeID, challenge.arbitratorExtraData);
         uint256 totalCost = appealCost.addCap((appealCost.mulCap(multiplier)) / MULTIPLIER_DIVISOR);
-        contribute(round, _side, msg.sender, msg.value, totalCost);
+        contribute(round, _side, msg.sender, msg.value, totalCost, _organization);
 
         if (round.paidFees[uint256(_side)] >= totalCost)
             round.hasPaid[uint256(_side)] = true;
@@ -710,9 +715,10 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
      * @param _contributor The contributor.
      * @param _amount The amount contributed.
      * @param _totalRequired The total amount required for this side.
+     * @param _organization The ID of the organization.
      * @return The amount of appeal fees contributed.
      */
-    function contribute(Round storage _round, Party _side, address payable _contributor, uint256 _amount, uint256 _totalRequired) internal returns (uint) {
+    function contribute(Round storage _round, Party _side, address payable _contributor, uint256 _amount, uint256 _totalRequired, bytes32 _organization) internal returns (uint) {
         // Take up to the amount necessary to fund the current round at the current costs.
         uint256 contribution; // Amount contributed.
         uint256 remainingETH; // Remaining ETH to send back.
@@ -723,6 +729,8 @@ contract ArbitrableDirectory is DirectoryInterface, IArbitrable, IEvidence, ERC1
 
         // Reimburse leftover ETH.
         _contributor.send(remainingETH); // Deliberate use of send in order to not block the contract in case of reverting fallback.
+
+        emit ChallengeContributed(_organization, organizationData[_organization].challenges.length - 1, msg.sender);
 
         return contribution;
     }
