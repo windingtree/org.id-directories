@@ -4,7 +4,6 @@ const path = require('path');
 const BASE_PATH = 'build/contracts';
 const DEPLOYMENTS_PATH = '.openzeppelin';
 const CONTRACTS_DIR = path.resolve(__dirname, `../${BASE_PATH}`);
-const DEPLOYMENTS_DIR = path.resolve(__dirname, `../${DEPLOYMENTS_PATH}`);
 const bundle = [
     '^Directory.json',
     '^DirectoryIndex.json',
