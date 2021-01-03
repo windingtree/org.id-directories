@@ -1,11 +1,11 @@
 [![Build Status](https://travis-ci.org/windingtree/org.id-directories.svg?branch=master)](https://travis-ci.org/windingtree/org.id-directories)
-[![Coverage Status](https://coveralls.io/repos/github/windingtree/org.id-directories/badge.svg?branch=master)](https://coveralls.io/github/windingtree/org.id-directories?branch=master&v=2.0) 
+[![Coverage Status](https://coveralls.io/repos/github/windingtree/org.id-directories/badge.svg?branch=master)](https://coveralls.io/github/windingtree/org.id-directories?branch=master&v=2.0)
 
 # Directory and DirectoryIndex Smart Contracts
 
 Smart contracts of the Winding Tree ORG.ID protocol
 
-## Initial setup  
+## Initial setup
 
 ```bash
 npm i
@@ -16,13 +16,13 @@ npm i
 ```bash
 npm run test
 npm run test ./<path_to_test_file>.js
-``` 
+```
 
-## Tests coverage  
+## Tests coverage
 
 ```bash
 npm run coverage
-``` 
+```
 
 ## Linting
 
@@ -32,8 +32,8 @@ npm run lint
 ```
 
 ## Generated docs
-- [Directory](./docs/Directory.md)  
-- [DirectoryIndex](./docs/DirectoryIndex.md)  
+- [Directory](./docs/Directory.md)
+- [DirectoryIndex](./docs/DirectoryIndex.md)
 
 ## Contracts ABIs
 
@@ -56,10 +56,10 @@ const {
 
 ## Directory deployment
 
-All deployments, upgrades, transactions and calls can be hadled using our [command line tools](./management/tools/README.md): 
+All deployments, upgrades, transactions and calls can be handled using [@windingtree/smart-contracts-tools](https://github.com/windingtree/smart-contracts-tools):
 
 ```bash
-$ orgid-tools --network ropsten cmd=deploy name=Directory from=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959 initMethod=initialize initArgs=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959,hotel,0xc8fD300bE7e4613bCa573ad820a6F1f0b915CfcA
+$ npx tools --network ropsten cmd=deploy name=Directory from=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959 initMethod=initialize initArgs=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959,hotel,0xc8fD300bE7e4613bCa573ad820a6F1f0b915CfcA
 ```
 
 The result will look like:
@@ -91,15 +91,15 @@ Auto-generated deployment configuration will be saved on the `./openzeppelin` re
 }
 ```
 
-The filename of the configuration file is formed according to mask:   
-`./<NETWORK_NAME>-<CONTRACT_NAME>.json`   
+The filename of the configuration file is formed according to mask:
+`./<NETWORK_NAME>-<CONTRACT_NAME>.json`
 
 `development` network has `private` name, so the name of file will be `private-Directory.json`
 
 ## DirectoryIndex deployment
 
 ```bash
-$ orgid-tools --network ropsten cmd=deploy name=DirectoryIndex from=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959 initMethod=initialize initArgs=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959 
+$ orgid-tools --network ropsten cmd=deploy name=DirectoryIndex from=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959 initMethod=initialize initArgs=0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959
 ```
 
 The result will look like:

@@ -14,8 +14,10 @@ rm -rf .flattened
 mkdir .flattened
 rm -f docs/*.md
 
+exclude=( "Migrations.sol", "EnhancedAppealableArbitrator.sol", "CentralizedArbitrator.sol", "DirectoryUpgradeability.sol", "DirectoryIndexUpgradeability.sol" )
+
 for f in $(find contracts -name *.sol)
-  do if [ `basename $f` != "Migrations.sol" ]; then
+  do if [[ "${exclude[*]}" != *`basename $f`* ]]; then
     file=`basename $f`
     filename="${file%.*}"
     npx truffle-flattener "$f" > .flattened/"$file"

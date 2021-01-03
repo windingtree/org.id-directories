@@ -1,218 +1,108 @@
-* [Directory](#directory)
-  * [OrganizationAdded](#event-organizationadded)
-  * [OrganizationRemoved](#event-organizationremoved)
-  * [OwnershipTransferred](#event-ownershiptransferred)
-  * [SegmentChanged](#event-segmentchanged)
-  * [add](#function-add)
-  * [getOrganizations](#function-getorganizations)
-  * [getSegment](#function-getsegment)
-  * [initialize](#function-initialize)
-  * [isOwner](#function-isowner)
-  * [orgId](#function-orgid)
-  * [owner](#function-owner)
-  * [remove](#function-remove)
-  * [renounceOwnership](#function-renounceownership)
-  * [setInterfaces](#function-setinterfaces)
-  * [setSegment](#function-setsegment)
-  * [supportsInterface](#function-supportsinterface)
-  * [transferOwnership](#function-transferownership)
+## `Directory`
 
-# Directory
 
-## *event* OrganizationAdded
 
-Directory.OrganizationAdded(organization, index) `df99887c`
+A Directory that can handle a list of organizations sharing a
+common segment such as hotels, airlines etc.
 
-Arguments
+### `registeredOrganization(bytes32 id)`
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes32* | organization | indexed |
-| *uint256* | index | not indexed |
 
-## *event* OrganizationRemoved
 
-Directory.OrganizationRemoved(organization) `01a059e8`
+Throws if organization not found in the index
 
-Arguments
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes32* | organization | indexed |
+### `initialize(address payable __owner, string _segment, address _orgId)` (public)
 
-## *event* OwnershipTransferred
 
-Directory.OwnershipTransferred(previousOwner, newOwner) `8be0079c`
 
-Arguments
+Initializer for upgradeable contracts.
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | previousOwner | indexed |
-| *address* | newOwner | indexed |
 
-## *event* SegmentChanged
+### `setSegment(string _segment)` (external)
 
-Directory.SegmentChanged(previousSegment, newSegment) `470f6531`
 
-Arguments
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *string* | previousSegment | not indexed |
-| *string* | newSegment | not indexed |
+Allows the owner of the contract to change the
+segment name.
 
 
-## *function* add
+### `add(bytes32 organization) → bytes32 id` (external)
 
-Directory.add(organization) `nonpayable` `446bffba`
 
-> Adds an organization to the registry
 
-Inputs
+Adds an organization to the registry
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes32* | organization | Organization"s Id |
 
-Outputs
+### `remove(bytes32 organization)` (external)
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes32* | id | The organization Id |
 
-## *function* getOrganizations
 
-Directory.getOrganizations() `view` `9754a3a8`
+Removes the organization from the registry
 
-> Returns registered organizations array
 
+### `getOrganizations(uint256 _cursor, uint256 _count) → bytes32[] organizationsList` (external)
 
 
-Outputs
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes32[]* | organizationsList | Array of organization Ids |
+Get all the registered organizations.
 
-## *function* getSegment
 
-Directory.getSegment() `view` `2203793c`
+### `getSegment() → string` (public)
 
-> Returns the segment name
 
 
+Returns a segment name.
 
+### `getOrganizationsCount(uint256 _cursor, uint256 _count) → uint256 count` (public)
 
-## *function* initialize
 
-Directory.initialize(__owner, _segment, _orgId) `nonpayable` `7bb7c0d8`
 
-> Initializer for upgradeable contracts.
+Return registeredOrganizations array length.
 
-Inputs
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | __owner | The address of the contract owner |
-| *string* | _segment | The segment name |
-| *address* | _orgId | undefined |
+### `setInterfaces()` (internal)
 
 
-## *function* isOwner
 
-Directory.isOwner() `view` `8f32d59b`
+Set the list of contract interfaces supported
 
-> Returns true if the caller is the current owner.
+### `_addOrganization(bytes32 organization) → bytes32` (internal)
 
 
 
+Add new organization in the directory.
+Only organizations that conform to OrganizationInterface can be added.
+ERC165 method of interface checking is used.
 
-## *function* orgId
+Emits `OrganizationAdded` on success.
 
-Directory.orgId() `view` `1730bdfe`
 
+### `_removeOrganization(bytes32 organization)` (internal)
 
 
 
+Allows a owner to remove an organization
+from the directory. Does not destroy the organization contract.
+Emits `OrganizationRemoved` on success.
 
-## *function* owner
 
-Directory.owner() `view` `8da5cb5b`
 
-> Returns the address of the current owner.
+### `SegmentChanged(string previousSegment, string newSegment)`
 
 
 
+Event triggered every time segment value is changed
 
-## *function* remove
+### `OrganizationAdded(bytes32 organization, uint256 index)`
 
-Directory.remove(organization) `nonpayable` `95bc2673`
 
-> Removes the organization from the registry
 
-Inputs
+Event triggered every time organization is added.
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes32* | organization | Organization"s Id |
+### `OrganizationRemoved(bytes32 organization)`
 
 
-## *function* renounceOwnership
 
-Directory.renounceOwnership() `nonpayable` `715018a6`
+Event triggered every time organization is removed.
 
-> Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner.     * NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.
-
-
-
-
-## *function* setInterfaces
-
-Directory.setInterfaces() `nonpayable` `fca85eb3`
-
-> Set the list of contract interfaces supported
-
-
-
-
-## *function* setSegment
-
-Directory.setSegment(_segment) `nonpayable` `a81159ea`
-
-> Allows the owner of the contract to change the segment name.
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *string* | _segment | The new segment name |
-
-
-## *function* supportsInterface
-
-Directory.supportsInterface(interfaceId) `view` `01ffc9a7`
-
-> See {IERC165-supportsInterface}.     * Time complexity O(1), guaranteed to always use less than 30 000 gas.
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *bytes4* | interfaceId | undefined |
-
-
-## *function* transferOwnership
-
-Directory.transferOwnership(newOwner) `nonpayable` `f2fde38b`
-
-> Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | newOwner | undefined |
-
-
----

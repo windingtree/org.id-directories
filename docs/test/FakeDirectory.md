@@ -1,0 +1,14 @@
+## `FakeDirectory`
+
+
+
+
+
+
+### `initialize()` (external)
+
+
+
+
+
+

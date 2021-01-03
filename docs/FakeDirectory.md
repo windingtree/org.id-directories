@@ -1,6 +1,0 @@
-* [FakeDirectory](#fakedirectory)
-
-# FakeDirectory
-
-
----

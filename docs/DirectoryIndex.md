@@ -1,168 +1,61 @@
-* [DirectoryIndex](#directoryindex)
-  * [OwnershipTransferred](#event-ownershiptransferred)
-  * [SegmentAdded](#event-segmentadded)
-  * [SegmentRemoved](#event-segmentremoved)
-  * [addSegment](#function-addsegment)
-  * [getSegments](#function-getsegments)
-  * [initialize](#function-initialize)
-  * [isOwner](#function-isowner)
-  * [owner](#function-owner)
-  * [removeSegment](#function-removesegment)
-  * [renounceOwnership](#function-renounceownership)
-  * [segments](#function-segments)
-  * [segmentsIndex](#function-segmentsindex)
-  * [transferOwnership](#function-transferownership)
+## `DirectoryIndex`
 
-# DirectoryIndex
 
-## *event* OwnershipTransferred
 
-DirectoryIndex.OwnershipTransferred(previousOwner, newOwner) `8be0079c`
+This smart contract is representing a list of Directories
 
-Arguments
+### `registeredSegment(address segment)`
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | previousOwner | indexed |
-| *address* | newOwner | indexed |
 
-## *event* SegmentAdded
 
-DirectoryIndex.SegmentAdded(segment, index) `e59c37ea`
+Throws if segment not found in the index
 
-Arguments
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | segment | indexed |
-| *uint256* | index | indexed |
+### `initialize(address payable __owner)` (external)
 
-## *event* SegmentRemoved
 
-DirectoryIndex.SegmentRemoved(segment) `bdbfdd18`
 
-Arguments
+Initializer for upgradeable contracts.
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | segment | indexed |
 
+### `addSegment(address segment)` (external)
 
-## *function* addSegment
 
-DirectoryIndex.addSegment(segment) `nonpayable` `81dc35d6`
 
-> Adds the directory to the index
+Adds the directory to the index
 
-Inputs
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | segment | New segment directory address |
+### `removeSegment(address segment)` (external)
 
 
-## *function* getSegments
 
-DirectoryIndex.getSegments() `view` `73b789f2`
+Removes the directory from the index
 
-> Returns registered segments array
 
+### `getSegments() → address[] segmentsList` (external)
 
 
-Outputs
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address[]* | segmentsList | Array of organization Ids |
+Returns registered segments array
 
-## *function* initialize
 
-DirectoryIndex.initialize(__owner) `nonpayable` `c4d66de8`
+### `_getSegmentsCount() → uint256 count` (internal)
 
-> Initializer for upgradeable contracts.
 
-Inputs
 
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | __owner | The address of the contract owner |
+Returns organizations array length
 
 
-## *function* isOwner
 
-DirectoryIndex.isOwner() `view` `8f32d59b`
+### `SegmentAdded(address segment, uint256 index)`
 
-> Returns true if the caller is the current owner.
 
 
+Event triggered when a segment is added to the index
 
+### `SegmentRemoved(address segment)`
 
-## *function* owner
 
-DirectoryIndex.owner() `view` `8da5cb5b`
 
-> Returns the address of the current owner.
+Event triggered when a segment address is removed from the index
 
-
-
-
-## *function* removeSegment
-
-DirectoryIndex.removeSegment(segment) `nonpayable` `ab0be362`
-
-> Removes the directory from the index
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | segment | New segment directory address |
-
-
-## *function* renounceOwnership
-
-DirectoryIndex.renounceOwnership() `nonpayable` `715018a6`
-
-> Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner.     * NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.
-
-
-
-
-## *function* segments
-
-DirectoryIndex.segments() `view` `31560626`
-
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *uint256* |  | undefined |
-
-
-## *function* segmentsIndex
-
-DirectoryIndex.segmentsIndex() `view` `ee9427e4`
-
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* |  | undefined |
-
-
-## *function* transferOwnership
-
-DirectoryIndex.transferOwnership(newOwner) `nonpayable` `f2fde38b`
-
-> Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.
-
-Inputs
-
-| **type** | **name** | **description** |
-|-|-|-|
-| *address* | newOwner | undefined |
-
-
----
