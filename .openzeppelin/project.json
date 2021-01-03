@@ -1,0 +1,32 @@
+{
+  "manifestVersion": "2.2",
+  "contracts": {
+    "Directory": "Directory",
+    "DirectoryIndex": "DirectoryIndex",
+    "DirectoryUpgradeability": "DirectoryUpgradeability",
+    "DirectoryIndexUpgradeability": "DirectoryIndexUpgradeability",
+    "FakeOrgId": "FakeOrgId",
+    "FakeDirectory": "FakeDirectory",
+    "ArbitrableDirectory": "ArbitrableDirectory"
+  },
+  "dependencies": {},
+  "name": "org.id-directories",
+  "version": "0.18.0",
+  "publish": true,
+  "compiler": {
+    "manager": "openzeppelin",
+    "compilerSettings": {
+      "optimizer": {
+        "enabled": true,
+        "runs": "200"
+      }
+    },
+    "solcVersion": "0.5.17",
+    "artifactsDir": "build/contracts",
+    "contractsDir": "contracts",
+    "typechain": {
+      "enabled": false
+    }
+  },
+  "telemetryOptIn": false
+}

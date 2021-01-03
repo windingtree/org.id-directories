@@ -1,0 +1,11 @@
+{
+  "version": "0.18.0",
+  "contract": {
+    "name": "ArbitrableDirectory",
+    "implementation": "0x5fa51d6ff0035F54D576Fa01F7aA1b09f72f4909",
+    "proxy": "0xdbEe1dC146990F3e11621E8C046C2077Be49E511"
+  },
+  "owner": "0xA0B74BFE28223c9e08d6DBFa74B5bf4Da763f959",
+  "proxyAdmin": "0x00CB4CD88810756e3ac719bD9A97969196Db3d25",
+  "blockNumber": 8985918
+}

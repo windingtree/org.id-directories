@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+.node-xmlhttprequest-sync-[0-9]*
+
+# Compiled
+build
+index.js
+
+# Dependency directories
+node_modules
+
+# Coverage artifacts
+coverage
+coverage.json
+.flattened
+allFiredEvents
+coverageEnv
+scTopics
+.coverage_artifacts
+
+# ETH keys
+keys.json
+
+# OpenZeppelin SDK
+.zos.session
+zos.dev-*
+.openzeppelin/*
+!.openzeppelin/project.json
+
+# Project deployments
+!.openzeppelin/ropsten*
+!.openzeppelin/rinkeby*
+!.openzeppelin/main*
+
+# Dev temp folders
+temp
