@@ -24,12 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          path: './'
+          path: '../'
       - uses: actions/setup-node@v2
         with:
           node-version: 12
           registry-url: https://registry.npmjs.org/
-      - run: echo "$GITHUB_WORKSPACE"
+      - run: echo "$GITHUB_WORKSPACE" && ls ./ && ls ../
       - run: npm i
       - run: npm run build
       - run: npm publish --access public
