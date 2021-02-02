@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/org.id-directories",
-  "version": "0.21.6",
+  "version": "0.21.7",
   "description": "Directory and DirectoryIndex smart contracts of the Winding Tree protocol",
   "scripts": {
     "test": "scripts/test.sh",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/windingtree/wt-contracts"
+    "url": "https://github.com/windingtree/org.id-directories"
   },
   "keywords": [
     "winding-tree",
