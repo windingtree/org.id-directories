@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/org.id-directories",
-  "version": "0.21.9",
+  "version": "0.21.10",
   "description": "Directory and DirectoryIndex smart contracts of the Winding Tree protocol",
   "scripts": {
     "test": "scripts/test.sh",
