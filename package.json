@@ -1,6 +1,6 @@
 {
   "name": "@windingtree/org.id-directories",
-  "version": "0.29.11",
+  "version": "0.3.0",
   "description": "Directory and DirectoryIndex smart contracts of the Winding Tree protocol",
   "scripts": {
     "test": "scripts/test.sh",
@@ -33,7 +33,9 @@
   ],
   "main": "index.js",
   "files": [
+    ".openzeppelin",
     "build",
+    "contracts",
     "index.js"
   ],
   "author": "Winding Tree Developers <dev@windingtree.com>",
